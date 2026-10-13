@@ -1,5 +1,5 @@
 ```javascript
-const CACHE_NAME = 'asamblea-pwa-v5';
+const CACHE_NAME = 'asamblea-pwa-v6';
 const urlsToCache = [
   './',
   './index.html',
