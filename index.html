@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Mis Apuntes</title>
   <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='115' fill='%23ffffff'/><path d='M0 115C0 51.487 51.487 0 115 0h282c63.513 0 115 51.487 115 115v45H0v-45z' fill='%23FFCC00'/><line x1='64' y1='250' x2='448' y2='250' stroke='%23E5E5EA' stroke-width='14' stroke-linecap='round'/><line x1='64' y1='340' x2='448' y2='340' stroke='%23E5E5EA' stroke-width='14' stroke-linecap='round'/><line x1='64' y1='430' x2='320' y2='430' stroke='%23E5E5EA' stroke-width='14' stroke-linecap='round'/></svg>">
   <meta name="theme-color" content="#F2F2F7">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Mis Apuntes">
@@ -392,8 +394,30 @@
       const [isSettingsOpen, setIsSettingsOpen] = useState(false);
       const [isDrawerOpen, setIsDrawerOpen] = useState(false);
       const [contextMenu, setContextMenu] = useState(null);
+      const [deferredPrompt, setDeferredPrompt] = useState(null);
 
       const saveTimeoutRef = useRef(null);
+
+      // Capturar el evento de instalación de PWA para ofrecer un botón directo
+      useEffect(() => {
+        const handleBeforeInstallPrompt = (e) => {
+          e.preventDefault();
+          setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      }, []);
+
+      const handleInstallClick = async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setDeferredPrompt(null);
+        }
+        setIsSettingsOpen(false);
+        setIsDrawerOpen(false);
+      };
 
       // Aplicar clase dark al documento
       useEffect(() => {
@@ -957,6 +981,12 @@
                   {currentScreen !== 'programs' && (
                     <button onClick={() => { setIsSettingsOpen(false); handleBackToPrograms(); }} className="w-full bg-white dark:bg-[#2C2C2E] text-[#007AFF] font-semibold text-[17px] p-3.5 rounded-xl active:bg-[#E5E5EA] dark:active:bg-[#3A3A3C] transition-colors text-center">
                       Volver al menú de Programas
+                    </button>
+                  )}
+
+                  {deferredPrompt && (
+                    <button onClick={handleInstallClick} className="w-full bg-[#007AFF] text-white font-semibold text-[17px] p-3.5 rounded-xl active:bg-[#0062CC] transition-colors text-center shadow-sm">
+                      Instalar Aplicación en el celular
                     </button>
                   )}
 
