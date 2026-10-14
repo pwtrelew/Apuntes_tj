@@ -1,5 +1,4 @@
-```javascript
-const CACHE_NAME = 'asamblea-pwa-v8';
+const CACHE_NAME = 'mis-apuntes-ios-v5';
 const urlsToCache = [
   './',
   './index.html',
@@ -7,10 +6,13 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
-  self.skipWaiting(); // Obliga a instalar la actualización inmediatamente
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(urlsToCache);
+      // Usamos catch individual para que si falta un archivo secundario no falle toda la instalación
+      return Promise.allSettled(
+        urlsToCache.map(url => cache.add(url).catch(() => {}))
+      );
     })
   );
 });
@@ -30,16 +32,13 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Ignorar peticiones a Firebase
   if (event.request.method !== 'GET' || event.request.url.includes('firestore.googleapis.com')) {
     return;
   }
 
-  // ESTRATEGIA: Red Primero, Respaldo en Caché (Network First)
   event.respondWith(
     fetch(event.request)
       .then(networkResponse => {
-        // Si hay internet y responde bien, mostramos la versión nueva y actualizamos el caché
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then(cache => {
@@ -49,9 +48,7 @@ self.addEventListener('fetch', event => {
         return networkResponse;
       })
       .catch(() => {
-        // Si no hay internet, servimos la versión guardada en el celular
         return caches.match(event.request);
       })
   );
 });
-```
