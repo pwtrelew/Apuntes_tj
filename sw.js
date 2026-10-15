@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mis-apuntes-ios-v6';
+const CACHE_NAME = 'mis-apuntes-ios-v7';
 const urlsToCache = [
   './',
   './index.html',
