@@ -101,6 +101,37 @@
     const Loader2 = ({ size = 24, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
     );
+    const Download = ({ size = 24, className = "" }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+    );
+    const Upload = ({ size = 24, className = "" }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+    );
+
+    const NOTE_COLORS = [
+      '#007AFF', // Blue
+      '#FF9500', // Orange
+      '#34C759', // Green
+      '#AF52DE', // Purple
+      '#FF2D55', // Pink
+      '#5856D6', // Indigo
+      '#00C7BE', // Teal
+      '#FFCC00'  // Yellow
+    ];
+
+    const formatNoteDate = (timestamp) => {
+      if (!timestamp) return '';
+      try {
+        const d = new Date(timestamp);
+        return d.toLocaleDateString('es-ES', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        });
+      } catch (e) {
+        return '';
+      }
+    };
 
     const programsDB = [
       {
@@ -567,8 +598,100 @@
       const [isDrawerOpen, setIsDrawerOpen] = useState(false);
       const [contextMenu, setContextMenu] = useState(null);
       const [deferredPrompt, setDeferredPrompt] = useState(null);
+      const [toastMessage, setToastMessage] = useState('');
 
       const saveTimeoutRef = useRef(null);
+      const fileInputRef = useRef(null);
+
+      const showToast = (msg) => {
+        setToastMessage(msg);
+        setTimeout(() => {
+          setToastMessage('');
+        }, 3000);
+      };
+
+      const handleExportBackup = () => {
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        saveNotesNow(notesRef.current);
+
+        const backupPayload = {
+          version: 1,
+          exportedAt: Date.now(),
+          username: currentUser?.username || 'usuario',
+          notes: notesRef.current,
+          customNotesList: customNotesList,
+          archivedPrograms: archivedPrograms,
+          deletedPrograms: deletedPrograms
+        };
+
+        try {
+          const blob = new Blob([JSON.stringify(backupPayload, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          const dateStr = new Date().toISOString().slice(0, 10);
+          a.href = url;
+          a.download = `Respaldo_Apuntes_${currentUser?.username || 'usuario'}_${dateStr}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          setIsSettingsOpen(false);
+          setIsDrawerOpen(false);
+          showToast('Copia de seguridad descargada');
+        } catch (e) {
+          showToast('Error al exportar copia');
+        }
+      };
+
+      const handleImportBackup = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = JSON.parse(event.target.result);
+            if (!data || typeof data !== 'object') {
+              showToast('Archivo de respaldo no válido');
+              return;
+            }
+
+            const u = currentUser?.username || 'default';
+            const mergedNotes = { ...notesRef.current, ...(data.notes || {}) };
+            notesRef.current = mergedNotes;
+            setNotes(mergedNotes);
+            localStorage.setItem(`asamblea-notas-${u}`, JSON.stringify(mergedNotes));
+
+            const existingMap = {};
+            customNotesList.forEach(item => {
+              if (item && item.id) existingMap[item.id] = item;
+            });
+            if (Array.isArray(data.customNotesList)) {
+              data.customNotesList.forEach(item => {
+                if (item && item.id) existingMap[item.id] = item;
+              });
+            }
+
+            const mergedList = Object.values(existingMap).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            setCustomNotesList(mergedList);
+            localStorage.setItem(`asamblea-custom-list-${u}`, JSON.stringify(mergedList));
+
+            if (data.archivedPrograms && typeof data.archivedPrograms === 'object') {
+              const nextArch = { ...archivedPrograms, ...data.archivedPrograms };
+              setArchivedPrograms(nextArch);
+              localStorage.setItem(`asamblea-archived-${u}`, JSON.stringify(nextArch));
+            }
+
+            setIsSettingsOpen(false);
+            setIsDrawerOpen(false);
+            showToast('¡Notas restauradas con éxito!');
+          } catch (err) {
+            showToast('No se pudo leer el archivo');
+          }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+      };
 
       useEffect(() => {
         const handleBeforeInstallPrompt = (e) => {
@@ -673,8 +796,10 @@
 
       const createNewCustomNote = () => {
         const u = currentUser?.username || 'default';
-        const newId = `custom_${Date.now()}`;
-        const newNote = { id: newId, title: 'Nueva nota', createdAt: Date.now() };
+        const now = Date.now();
+        const newId = `custom_${now}`;
+        const nextColor = NOTE_COLORS[customNotesList.length % NOTE_COLORS.length];
+        const newNote = { id: newId, title: 'Nueva nota', createdAt: now, color: nextColor };
         const updatedList = [newNote, ...customNotesList];
         setCustomNotesList(updatedList);
         try {
@@ -874,6 +999,19 @@
 
       return (
         <div className="min-h-screen bg-[#F2F2F7] dark:bg-[#000000] text-black dark:text-white font-sans pb-20 selection:bg-[#007AFF]/30">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={handleImportBackup}
+            className="hidden"
+          />
+
+          {toastMessage && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-black/85 dark:bg-white/90 text-white dark:text-black px-5 py-2.5 rounded-full text-[14px] font-semibold shadow-lg animate-fade-in">
+              {toastMessage}
+            </div>
+          )}
           
           {/* Barra de Navegación Superior Nativa de iOS */}
           <header className="sticky top-0 z-40 bg-[#F2F2F7]/80 dark:bg-[#000000]/80 backdrop-blur-md border-b border-[#C6C6C8]/60 dark:border-[#38383A]">
@@ -943,16 +1081,26 @@
                   <div className="mt-8">
                     <h2 className="text-[22px] font-bold tracking-tight mb-3.5 px-2 text-black dark:text-white">Mis Notas</h2>
                     <div className="space-y-3.5">
-                      {customNotesList.map(note => (
-                        <div 
-                          key={note.id}
-                          onClick={() => handleOpenCustomNote(note.id)}
-                          className="bg-white dark:bg-[#1C1C1E] rounded-[16px] p-5 shadow-sm active:scale-[0.98] transition-transform cursor-pointer border-l-4 border-[#007AFF]"
-                        >
-                          <h3 className="text-[19px] font-semibold tracking-tight text-black dark:text-white leading-snug mb-1">{note.title || 'Sin título'}</h3>
-                          <p className="text-[#8E8E93] text-[15px]">Nota libre</p>
-                        </div>
-                      ))}
+                      {customNotesList.map((note, idx) => {
+                        const borderColor = note.color || NOTE_COLORS[idx % NOTE_COLORS.length];
+                        const createdDate = formatNoteDate(note.createdAt || parseInt(String(note.id).replace('custom_', ''), 10));
+                        return (
+                          <div 
+                            key={note.id}
+                            onClick={() => handleOpenCustomNote(note.id)}
+                            style={{ borderLeftColor: borderColor }}
+                            className="bg-white dark:bg-[#1C1C1E] rounded-[16px] p-5 shadow-sm active:scale-[0.98] transition-transform cursor-pointer border-l-[5px]"
+                          >
+                            <div className="flex justify-between items-baseline gap-2 mb-1">
+                              <h3 className="text-[19px] font-semibold tracking-tight text-black dark:text-white leading-snug truncate">{note.title || 'Sin título'}</h3>
+                              {createdDate && (
+                                <span className="text-[12px] text-[#8E8E93] font-medium shrink-0">{createdDate}</span>
+                              )}
+                            </div>
+                            <p className="text-[#8E8E93] text-[14px]">Nota libre</p>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1104,9 +1252,12 @@
                   type="text" 
                   value={customNotesList.find(n => n.id === activeProgram)?.title || ''}
                   onChange={handleUpdateCustomNoteTitle}
-                  className="w-full text-[32px] font-bold tracking-tight mb-2 px-1 text-black dark:text-white bg-transparent focus:outline-none placeholder-[#8E8E93]"
+                  className="w-full text-[32px] font-bold tracking-tight mb-0.5 px-1 text-black dark:text-white bg-transparent focus:outline-none placeholder-[#8E8E93]"
                   placeholder="Título de la nota..."
                 />
+                <p className="text-[12px] text-[#8E8E93] px-1.5 mb-2 font-medium">
+                  Creada el {formatNoteDate(customNotesList.find(n => n.id === activeProgram)?.createdAt || parseInt(String(activeProgram).replace('custom_', ''), 10))}
+                </p>
                 <RichNoteEditor 
                   id={activeProgram} 
                   value={notesRef.current[activeProgram] || ''} 
@@ -1157,8 +1308,20 @@
                   )}
 
                   <button onClick={handleExportPDF} className="w-full bg-white dark:bg-[#2C2C2E] text-[#007AFF] font-semibold text-[17px] p-3.5 rounded-xl active:bg-[#E5E5EA] dark:active:bg-[#3A3A3C] transition-colors text-center">
-                    Exportar apuntes en PDF
+                    Exportar como PDF
                   </button>
+
+                  <div className="bg-white dark:bg-[#2C2C2E] rounded-xl overflow-hidden divide-y divide-[#C6C6C8]/30 dark:divide-[#38383A]">
+                    <button onClick={handleExportBackup} className="w-full text-[#007AFF] font-semibold text-[16px] p-3.5 active:bg-[#E5E5EA] dark:active:bg-[#3A3A3C] transition-colors flex items-center justify-center gap-2">
+                      <Download size={18} />
+                      <span>Exportar Notas</span>
+                    </button>
+                    <button onClick={() => fileInputRef.current?.click()} className="w-full text-[#007AFF] font-semibold text-[16px] p-3.5 active:bg-[#E5E5EA] dark:active:bg-[#3A3A3C] transition-colors flex items-center justify-center gap-2">
+                      <Upload size={18} />
+                      <span>Importar notas</span>
+                    </button>
+                  </div>
+
                   <button onClick={handleLogout} className="w-full bg-white dark:bg-[#2C2C2E] text-[#FF3B30] font-semibold text-[17px] p-3.5 rounded-xl active:bg-[#E5E5EA] dark:active:bg-[#3A3A3C] transition-colors text-center">
                     Cerrar Sesión
                   </button>
@@ -1182,22 +1345,20 @@
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-6">
                   <div>
-                    <h4 className="text-[#8E8E93] text-[13px] uppercase tracking-wider font-semibold mb-2 px-2">Apariencia</h4>
-                    <div className="bg-white dark:bg-[#2C2C2E] rounded-xl overflow-hidden">
-                      <div className="flex justify-between items-center p-3.5 border-b border-[#C6C6C8]/30 dark:border-[#38383A]">
-                        <span className="text-[16px] text-black dark:text-white">Modo Oscuro</span>
-                        <button onClick={toggleDarkMode} className={`w-12 h-7 rounded-full transition-colors relative ${isDarkMode ? 'bg-[#34C759]' : 'bg-[#E5E5EA] dark:bg-[#3A3A3C]'}`}>
-                          <div className={`w-6 h-6 bg-white rounded-full absolute top-0.5 transition-transform ${isDarkMode ? 'translate-x-5' : 'translate-x-0.5'} shadow-sm`}></div>
-                        </button>
-                      </div>
-                      <div className="flex justify-between items-center p-3.5">
-                        <span className="text-[16px] text-black dark:text-white">Tamaño de texto</span>
-                        <div className="flex items-center gap-2">
-                          <button onClick={decreaseFontSize} className="w-8 h-8 rounded-lg bg-[#F2F2F7] dark:bg-[#3A3A3C] font-semibold flex items-center justify-center text-black dark:text-white">A-</button>
-                          <span className="font-semibold text-[15px] w-6 text-center text-black dark:text-white">{fontSize}</span>
-                          <button onClick={increaseFontSize} className="w-8 h-8 rounded-lg bg-[#F2F2F7] dark:bg-[#3A3A3C] font-semibold flex items-center justify-center text-black dark:text-white">A+</button>
-                        </div>
-                      </div>
+                    <h4 className="text-[#8E8E93] text-[13px] uppercase tracking-wider font-semibold mb-2 px-2">Copia de Seguridad</h4>
+                    <div className="bg-white dark:bg-[#2C2C2E] rounded-xl overflow-hidden divide-y divide-[#C6C6C8]/30 dark:divide-[#38383A]">
+                      <button onClick={handleExportBackup} className="w-full flex items-center gap-3 p-3.5 text-left text-[15px] font-medium text-[#007AFF] active:bg-[#E5E5EA] dark:active:bg-[#3A3A3C] transition-colors">
+                        <Download size={18} />
+                        <span>Exportar Notas</span>
+                      </button>
+                      <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-3 p-3.5 text-left text-[15px] font-medium text-[#007AFF] active:bg-[#E5E5EA] dark:active:bg-[#3A3A3C] transition-colors">
+                        <Upload size={18} />
+                        <span>Importar notas</span>
+                      </button>
+                      <button onClick={() => { setIsDrawerOpen(false); handleExportPDF(); }} className="w-full flex items-center gap-3 p-3.5 text-left text-[15px] font-medium text-[#007AFF] active:bg-[#E5E5EA] dark:active:bg-[#3A3A3C] transition-colors">
+                        <Download size={18} />
+                        <span>Exportar como PDF</span>
+                      </button>
                     </div>
                   </div>
 
