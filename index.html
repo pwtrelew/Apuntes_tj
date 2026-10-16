@@ -7,11 +7,36 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
   <link rel="apple-touch-icon" sizes="192x192" href="./icon-192.png">
-  <meta id="theme-color-meta" name="theme-color" content="#F2F2F7">
+  <meta id="theme-color-meta" name="theme-color" content="#000000">
+  <meta id="color-scheme-meta" name="color-scheme" content="light dark">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta id="apple-status-bar-meta" name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta id="apple-status-bar-meta" name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Mis Apuntes">
+
+  <script>
+    (function() {
+      try {
+        var dark = localStorage.getItem('asamblea-dark-mode') === 'true';
+        var docEl = document.documentElement;
+        var themeMeta = document.getElementById('theme-color-meta');
+        var schemeMeta = document.getElementById('color-scheme-meta');
+        if (dark) {
+          docEl.classList.add('dark');
+          docEl.style.backgroundColor = '#000000';
+          docEl.style.colorScheme = 'dark';
+          if (themeMeta) themeMeta.setAttribute('content', '#000000');
+          if (schemeMeta) schemeMeta.setAttribute('content', 'dark');
+        } else {
+          docEl.classList.remove('dark');
+          docEl.style.backgroundColor = '#F2F2F7';
+          docEl.style.colorScheme = 'light';
+          if (themeMeta) themeMeta.setAttribute('content', '#F2F2F7');
+          if (schemeMeta) schemeMeta.setAttribute('content', 'light');
+        }
+      } catch (e) {}
+    })();
+  </script>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -28,18 +53,45 @@
   </script>
 
   <style>
+    :root {
+      color-scheme: light;
+      background-color: #F2F2F7;
+    }
+    html.dark {
+      color-scheme: dark !important;
+      background-color: #000000 !important;
+    }
     html, body {
-      min-height: 100%;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
       background-color: #F2F2F7;
       color: #000000;
       -webkit-tap-highlight-color: transparent;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       overscroll-behavior-y: none;
     }
-    html.dark, html.dark body {
+    html.dark, html.dark body, body.dark {
       background-color: #000000 !important;
       color: #FFFFFF;
-      color-scheme: dark;
+      color-scheme: dark !important;
+    }
+    /* Lienzo fijo de extremo a extremo para cubrir barras inferiores de Android/iOS */
+    body::before {
+      content: "";
+      position: fixed;
+      top: -100px;
+      left: -100px;
+      right: -100px;
+      bottom: -100px;
+      background-color: #F2F2F7;
+      z-index: -9999;
+      pointer-events: none;
+    }
+    html.dark body::before, body.dark::before {
+      background-color: #000000 !important;
     }
     body {
       padding-top: env(safe-area-inset-top);
@@ -308,6 +360,102 @@
       );
     };
 
+    const DAY_THEMES = {
+      viernes: {
+        label: 'Viernes',
+        color: '#E5854B',
+        quote: '“Felices los que reconocen sus necesidades espirituales” (Mateo 5:3)'
+      },
+      sabado: {
+        label: 'Sábado',
+        color: '#87B896',
+        quote: '“Hay más felicidad en dar que en recibir” (Hechos 20:35)'
+      },
+      domingo: {
+        label: 'Domingo',
+        color: '#6CA6CD',
+        quote: '“Felices los que escuchan la palabra de Dios y la ponen en práctica” (Lucas 11:28)'
+      },
+      programa_cc: {
+        label: 'Programa',
+        color: '#D9822B',
+        quote: '“El que confía en Jehová es feliz” (Proverbios 16:20)'
+      },
+      repaso_cc: {
+        label: 'Preguntas de repaso',
+        color: '#D9822B',
+        quote: '“El que confía en Jehová es feliz” (Proverbios 16:20)'
+      },
+      programa_ca: {
+        label: 'Programa',
+        color: '#6CA6CD',
+        quote: '“Haz de Jehová tu mayor alegría” (Salmo 37:4)'
+      },
+      repaso_ca: {
+        label: 'Preguntas de repaso',
+        color: '#6CA6CD',
+        quote: '“Haz de Jehová tu mayor alegría” (Salmo 37:4)'
+      }
+    };
+
+    const getSectionTheme = (progId, tab) => {
+      if (tab === 'viernes' || tab === 'sabado' || tab === 'domingo') return DAY_THEMES[tab];
+      if (progId === 'circuito_confia_2027') return tab === 'repaso' ? DAY_THEMES.repaso_cc : DAY_THEMES.programa_cc;
+      return tab === 'repaso' ? DAY_THEMES.repaso_ca : DAY_THEMES.programa_ca;
+    };
+
+    const PREFIX_PATTERNS = [
+      'DISCURSO DEL PRESIDENTE DE LA ASAMBLEA:',
+      'DISCURSO DEL PRESIDENTE:',
+      'PRODUCCIÓN AUDIOVISUAL:',
+      'SERIE DE DISCURSOS:',
+      'DISCURSO DE BAUTISMO:',
+      'Discurso de bautismo:',
+      'DISCURSO PÚBLICO:',
+      'Discurso público:'
+    ];
+
+    const renderStyledTitle = (title, accentColor, time) => {
+      let matchedPrefix = null;
+      for (const prefix of PREFIX_PATTERNS) {
+        if (title.startsWith(prefix)) {
+          matchedPrefix = prefix;
+          break;
+        }
+      }
+
+      const timePrefix = time ? <span className="font-normal mr-1.5">{time}</span> : null;
+
+      if (matchedPrefix) {
+        const rest = title.slice(matchedPrefix.length).trim();
+        if (matchedPrefix.toUpperCase() === 'PRODUCCIÓN AUDIOVISUAL:' && rest.includes('|')) {
+          const [boldItalicLine, normalLine] = rest.split('|');
+          return (
+            <span>
+              {timePrefix}
+              <span style={{ color: accentColor }} className="font-bold tracking-tight">{matchedPrefix.toUpperCase()} </span>
+              <span className="block font-bold italic mt-0.5">{boldItalicLine.trim()}</span>
+              {normalLine && <span className="block font-normal mt-0.5">{normalLine.trim()}</span>}
+            </span>
+          );
+        }
+        return (
+          <span>
+            {timePrefix}
+            <span style={{ color: accentColor }} className="font-bold tracking-tight">{matchedPrefix.toUpperCase()} </span>
+            <span className="font-normal">{rest}</span>
+          </span>
+        );
+      }
+
+      return (
+        <span>
+          {timePrefix}
+          <span>{title}</span>
+        </span>
+      );
+    };
+
     const programsDB = [
       {
         id: 'regional_2026',
@@ -315,97 +463,103 @@
         year: '2026',
         days: 3,
         viernes: [
-          { id: 'v_att_am', title: 'Asistencia (Mañana)', type: 'attendance', hasStream: true },
+          { id: 'v_hdr_am', title: 'Mañana', type: 'session_header' },
           { id: 'v1', time: '9:20', title: 'Video musical', type: 'music' },
           { id: 'v2', time: '9:30', title: 'Canción 160 y oración', type: 'song' },
-          { id: 'v3', time: '9:40', title: 'DISCURSO DEL PRESIDENTE: ¿Es realista la idea de ser felices para siempre?', type: 'talk' },
-          { id: 'v4', time: '10:10', title: 'PRODUCCIÓN AUDIOVISUAL: Las buenas noticias según Jesús: Episodio 4 "Para eso he venido"', type: 'talk' },
+          { id: 'v3', time: '9:40', title: 'DISCURSO DEL PRESIDENTE DE LA ASAMBLEA: ¿Es realista la idea de ser felices para siempre? (Salmo 16:11; 100:2)', type: 'talk' },
+          { id: 'v4', time: '10:10', title: 'PRODUCCIÓN AUDIOVISUAL: Las buenas noticias según Jesús: Episodio 4 | “Para eso he venido” (Mateo 4:23-25; 8:1-4, 14-17; 9:1-17; 12:1-21; Marcos 1:21-3:19; Lucas 4:31-44; 5:12-6:16; Juan 5:1-47)', type: 'talk' },
           { id: 'v5', time: '11:05', title: 'Canción 17 y anuncios', type: 'song' },
           { id: 'v6', time: '11:15', title: 'SERIE DE DISCURSOS: ¡Las profecías sobre el Mesías se cumplieron!', type: 'symposium',
             parts: [
-              { id: 'v6-1', title: '• "Él mismo tomó nuestras enfermedades"' },
-              { id: 'v6-2', title: '• "No discutirá"' },
-              { id: 'v6-3', title: '• "Nunca les hablaba sin utilizar alguna comparación"' }
+              { id: 'v6-1', title: '• “Él mismo tomó nuestras enfermedades” (Mateo 8:16, 17; Salmo 32:1, 2; Isaías 53:4, 5)' },
+              { id: 'v6-2', title: '• “No discutirá” (Mateo 12:15-21; Isaías 42:1-4)' },
+              { id: 'v6-3', title: '• “Nunca les hablaba sin utilizar alguna comparación” (Mateo 13:34, 35; Salmo 78:2)' }
             ]
           },
           { id: 'v7', time: '12:10', title: 'Canción 14 e intermedio', type: 'song' },
-          { id: 'v_att_pm', title: 'Asistencia (Tarde)', type: 'attendance', hasStream: true },
+          { id: 'v_att_am', title: 'Asistencia (Mañana)', type: 'attendance', hasStream: true },
+          { id: 'v_hdr_pm', title: 'Tarde', type: 'session_header' },
           { id: 'v8', time: '1:35', title: 'Video musical', type: 'music' },
           { id: 'v9', time: '1:45', title: 'Canción 23', type: 'song' },
-          { id: 'v10', time: '1:50', title: '¿Qué enseñó Jesús sobre el sábado?', type: 'talk' },
+          { id: 'v10', time: '1:50', title: '¿Qué enseñó Jesús sobre el sábado? (Mateo 12:1-14; Marcos 2:23-28)', type: 'talk' },
           { id: 'v11', time: '2:10', title: 'SERIE DE DISCURSOS: Imitemos a los que sirvieron a Jesús', type: 'symposium',
             parts: [
-              { id: 'v11-1', title: '• Los apóstoles' },
-              { id: 'v11-2', title: '• Muchas mujeres' }
+              { id: 'v11-1', title: '• Los apóstoles (Mateo 10:1-15; Marcos 6:7-13)' },
+              { id: 'v11-2', title: '• Muchas mujeres (Lucas 8:1-3)' }
             ]
           },
           { id: 'v12', time: '2:50', title: 'Canción 76 y anuncios', type: 'song' },
-          { id: 'v13', time: '3:00', title: '"Felices los que lavan sus túnicas largas"', type: 'talk' },
+          { id: 'v13', time: '3:00', title: '“Felices los que lavan sus túnicas largas” (Apocalipsis 22:14)', type: 'talk' },
           { id: 'v14', time: '3:30', title: 'Canción 155 y oración de conclusión', type: 'song' },
+          { id: 'v_att_pm', title: 'Asistencia (Tarde)', type: 'attendance', hasStream: true }
         ],
         sabado: [
-          { id: 's_att_am', title: 'Asistencia (Mañana)', type: 'attendance', hasStream: true },
+          { id: 's_hdr_am', title: 'Mañana', type: 'session_header' },
           { id: 's1', time: '9:20', title: 'Video musical', type: 'music' },
           { id: 's2', time: '9:30', title: 'Canción 111 y oración', type: 'song' },
-          { id: 's3', time: '9:40', title: '"Él tomó la palabra y se puso a enseñarles"', type: 'talk' },
-          { id: 's4', time: '9:50', title: 'PRODUCCIÓN AUDIOVISUAL: Las buenas noticias según Jesús: Episodio 5 "Impactados con su manera de enseñar"', type: 'talk' },
+          { id: 's3', time: '9:40', title: '“Él tomó la palabra y se puso a enseñarles” (Mateo 5:1, 2)', type: 'talk' },
+          { id: 's4', time: '9:50', title: 'PRODUCCIÓN AUDIOVISUAL: Las buenas noticias según Jesús: Episodio 5 | Impactados con su manera de enseñar (Mateo 5:3-7:29; Lucas 6:17-49)', type: 'talk' },
           { id: 's5', time: '10:25', title: 'Canción 89 y anuncios', type: 'song' },
-          { id: 's6', time: '10:35', title: 'Cuatro enemigos de la felicidad', type: 'talk' },
-          { id: 's7', time: '10:50', title: '¿Puede ver el principio detrás de la ley?', type: 'talk' },
+          { id: 's6', time: '10:35', title: 'Cuatro enemigos de la felicidad (Lucas 6:24-26)', type: 'talk' },
+          { id: 's7', time: '10:50', title: '¿Puede ver el principio detrás de la ley? (Mateo 5:17-48)', type: 'talk' },
           { id: 's8', time: '11:15', title: 'SERIE DE DISCURSOS: Lecciones sobre la tierra en la que vivió Jesús', type: 'symposium',
             parts: [
-              { id: 's8-1', title: '• La sal y la luz' },
-              { id: 's8-2', title: '• Las plantas y los animales' }
+              { id: 's8-1', title: '• La sal y la luz (Mateo 5:13-16)' },
+              { id: 's8-2', title: '• Las plantas y los animales (Mateo 6:26, 28, 29; 7:16)' }
             ]
           },
-          { id: 's9', time: '11:40', title: 'DISCURSO DE BAUTISMO: "Tu Padre, que mira en secreto, te lo pagará"', type: 'talk' },
+          { id: 's9', time: '11:40', title: 'DISCURSO DE BAUTISMO: “Tu Padre, que mira en secreto, te lo pagará” (Mateo 6:1-18)', type: 'talk' },
           { id: 's10', time: '12:10', title: 'Canción 51 e intermedio', type: 'song' },
-          { id: 's_att_pm', title: 'Asistencia (Tarde)', type: 'attendance', hasStream: true },
+          { id: 's_att_am', title: 'Asistencia (Mañana)', type: 'attendance', hasStream: true },
+          { id: 's_hdr_pm', title: 'Tarde', type: 'session_header' },
           { id: 's11', time: '1:35', title: 'Video musical', type: 'music' },
           { id: 's12', time: '1:45', title: 'Canción 125', type: 'song' },
           { id: 's13', time: '1:50', title: 'SERIE DE DISCURSOS: Felices...', type: 'symposium',
             parts: [
-              { id: 's13-1', title: '• los que reconocen sus necesidades espirituales' },
-              { id: 's13-2', title: '• los que se lamentan' },
-              { id: 's13-3', title: '• los que son apacibles' },
-              { id: 's13-4', title: '• los que tienen hambre y sed de justicia' },
-              { id: 's13-5', title: '• los que son misericordiosos' },
-              { id: 's13-6', title: '• los que tienen un corazón puro' },
-              { id: 's13-7', title: '• los que fomentan la paz' },
-              { id: 's13-8', title: '• los que han sido perseguidos por causa de la justicia' },
-              { id: 's13-9', title: '• ustedes cuando la gente los insulte' }
+              { id: 's13-1', title: '• los que reconocen sus necesidades espirituales (Mateo 5:3)' },
+              { id: 's13-2', title: '• los que se lamentan (Mateo 5:4)' },
+              { id: 's13-3', title: '• los que son apacibles (Mateo 5:5)' },
+              { id: 's13-4', title: '• los que tienen hambre y sed de justicia (Mateo 5:6)' },
+              { id: 's13-5', title: '• los que son misericordiosos (Mateo 5:7)' },
+              { id: 's13-6', title: '• los que tienen un corazón puro (Mateo 5:8)' },
+              { id: 's13-7', title: '• los que fomentan la paz (Mateo 5:9)' },
+              { id: 's13-8', title: '• los que han sido perseguidos por causa de la justicia (Mateo 5:10)' },
+              { id: 's13-9', title: '• ustedes cuando la gente los insulte (Mateo 5:11, 12)' }
             ]
           },
           { id: 's14', time: '3:20', title: 'Canción 81 y anuncios', type: 'song' },
-          { id: 's15', time: '3:30', title: '¿Por qué se angustian?', type: 'talk' },
-          { id: 's16', time: '3:55', title: '"Entren por la puerta angosta"', type: 'talk' },
-          { id: 's17', time: '4:30', title: 'Canción 21 y oración de conclusión', type: 'song' }
+          { id: 's15', time: '3:30', title: '¿Por qué se angustian? (Mateo 6:19-34)', type: 'talk' },
+          { id: 's16', time: '3:55', title: '“Entren por la puerta angosta” (Mateo 7:13-27)', type: 'talk' },
+          { id: 's17', time: '4:30', title: 'Canción 21 y oración de conclusión', type: 'song' },
+          { id: 's_att_pm', title: 'Asistencia (Tarde)', type: 'attendance', hasStream: true }
         ],
         domingo: [
-          { id: 'd_att_am', title: 'Asistencia (Mañana)', type: 'attendance', hasStream: true },
+          { id: 'd_hdr_am', title: 'Mañana', type: 'session_header' },
           { id: 'd1', time: '9:20', title: 'Video musical', type: 'music' },
           { id: 'd2', time: '9:30', title: 'Canción 68 y oración', type: 'song' },
           { id: 'd3', time: '9:40', title: 'SERIE DE DISCURSOS: Lecciones de las comparaciones de Jesús', type: 'symposium',
             parts: [
-              { id: 'd3-1', title: '• Los cuatro tipos de terreno' },
-              { id: 'd3-2', title: '• El trigo y la mala hierba' },
-              { id: 'd3-3', title: '• El grano de mostaza' },
-              { id: 'd3-4', title: '• La levadura' },
-              { id: 'd3-5', title: '• La red de pesca' }
+              { id: 'd3-1', title: '• Los cuatro tipos de terreno (Mateo 13:3-8, 18-23)' },
+              { id: 'd3-2', title: '• El trigo y la mala hierba (Mateo 13:24-30, 36-43)' },
+              { id: 'd3-3', title: '• El grano de mostaza (Mateo 13:31, 32)' },
+              { id: 'd3-4', title: '• La levadura (Mateo 13:33)' },
+              { id: 'd3-5', title: '• La red de pesca (Mateo 13:47-50)' }
             ]
           },
           { id: 'd4', time: '11:00', title: 'Canción 64 y anuncios', type: 'song' },
-          { id: 'd5', time: '11:10', title: 'DISCURSO PÚBLICO: ¿Ha encontrado el tesoro?', type: 'talk' },
+          { id: 'd5', time: '11:10', title: 'DISCURSO PÚBLICO: ¿Ha encontrado el tesoro? (Mateo 13:44-46)', type: 'talk' },
           { id: 'd6', time: '11:40', title: 'Resumen de La Atalaya', type: 'talk' },
           { id: 'd7', time: '12:10', title: 'Canción 140 e intermedio', type: 'song' },
-          { id: 'd_att_pm', title: 'Asistencia (Tarde)', type: 'attendance', hasStream: true },
+          { id: 'd_att_am', title: 'Asistencia (Mañana)', type: 'attendance', hasStream: true },
+          { id: 'd_hdr_pm', title: 'Tarde', type: 'session_header' },
           { id: 'd8', time: '1:35', title: 'Video musical', type: 'music' },
           { id: 'd9', time: '1:45', title: 'Canción 108', type: 'song' },
-          { id: 'd10', time: '1:50', title: 'PRODUCCIÓN AUDIOVISUAL: Las buenas noticias según Jesús: Episodio 6 "¿Eres tú el que tiene que venir?"', type: 'talk' },
+          { id: 'd10', time: '1:50', title: 'PRODUCCIÓN AUDIOVISUAL: Las buenas noticias según Jesús: Episodio 6 | “¿Eres tú el que tiene que venir?” (Mateo 11:2-19; 14:1-12; Lucas 7:18-35)', type: 'talk' },
           { id: 'd11', time: '2:35', title: 'Canción 120 y anuncios', type: 'song' },
-          { id: 'd12', time: '2:45', title: '¿Qué hemos aprendido?', type: 'talk' },
-          { id: 'd13', time: '2:55', title: '"Felices los ojos de ustedes, que ven"', type: 'talk' },
-          { id: 'd14', time: '3:45', title: 'Canción 163 y oración de conclusión', type: 'song' }
+          { id: 'd12', time: '2:45', title: '¿Qué hemos aprendido? (Mateo 13:51, 52)', type: 'talk' },
+          { id: 'd13', time: '2:55', title: '“Felices los ojos de ustedes, que ven” (Mateo 13:16, 17)', type: 'talk' },
+          { id: 'd14', time: '3:45', title: 'Canción 163 y oración de conclusión', type: 'song' },
+          { id: 'd_att_pm', title: 'Asistencia (Tarde)', type: 'attendance', hasStream: true }
         ]
       },
       {
@@ -414,7 +568,7 @@
         year: '2026-2027 (Sup. Circuito)',
         days: 1,
         programa: [
-          { id: 'cc_att_am', title: 'Asistencia (Mañana)', type: 'attendance', hasStream: true },
+          { id: 'cc_hdr_am', title: 'Mañana', type: 'session_header' },
           { id: 'cc1', time: '9:40', title: 'Música', type: 'music' },
           { id: 'cc2', time: '9:50', title: 'Canción 31 y oración', type: 'song' },
           { id: 'cc3', time: '10:00', title: '¿Por qué debemos confiar en Jehová con todo el corazón?', type: 'talk' },
@@ -427,12 +581,13 @@
           },
           { id: 'cc5', time: '11:05', title: 'Canción 57 y anuncios', type: 'song' },
           { id: 'cc6', time: '11:15', title: 'Ayudemos a otros a confiar en el "Dios vivo y verdadero"', type: 'talk' },
-          { id: 'cc7', time: '11:35', title: 'Discurso de bautismo: "Tu Padre, que mira en secreto, te lo pagará"', type: 'talk' },
+          { id: 'cc7', time: '11:35', title: 'DISCURSO DE BAUTISMO: "Tu Padre, que mira en secreto, te lo pagará"', type: 'talk' },
           { id: 'cc8', time: '12:05', title: 'Canción 29 e intermedio', type: 'song' },
-          { id: 'cc_att_pm', title: 'Asistencia (Tarde)', type: 'attendance', hasStream: true },
+          { id: 'cc_att_am', title: 'Asistencia (Mañana)', type: 'attendance', hasStream: true },
+          { id: 'cc_hdr_pm', title: 'Tarde', type: 'session_header' },
           { id: 'cc9', time: '1:20', title: 'Música', type: 'music' },
           { id: 'cc10', time: '1:30', title: 'Canción 8 y oración', type: 'song' },
-          { id: 'cc11', time: '1:35', title: 'Discurso público: ¿En quién sí se puede confiar?', type: 'talk' },
+          { id: 'cc11', time: '1:35', title: 'DISCURSO PÚBLICO: ¿En quién sí se puede confiar?', type: 'talk' },
           { id: 'cc12', time: '2:05', title: 'Resumen de La Atalaya', type: 'talk' },
           { id: 'cc13', time: '2:35', title: 'Canción 135 y anuncios', type: 'song' },
           { id: 'cc14', time: '2:45', title: 'SERIE DE DISCURSOS: Confíe en la sabiduría de Jehová...', type: 'symposium',
@@ -443,7 +598,8 @@
             ]
           },
           { id: 'cc15', time: '3:30', title: '"El que confía en Jehová es feliz"', type: 'talk' },
-          { id: 'cc16', time: '4:00', title: 'Canción 54 y oración', type: 'song' }
+          { id: 'cc16', time: '4:00', title: 'Canción 54 y oración', type: 'song' },
+          { id: 'cc_att_pm', title: 'Asistencia (Tarde)', type: 'attendance', hasStream: true }
         ],
         repaso: [
           { id: 'cc_rep1', title: '1. ¿Cómo demostramos que confiamos en Jehová con todo nuestro corazón? (Prov. 3:5, 6)', type: 'talk' },
@@ -459,7 +615,7 @@
         year: '2026-2027 (Rep. Sucursal)',
         days: 1,
         programa: [
-          { id: 'ca_att_am', title: 'Asistencia (Mañana)', type: 'attendance', hasStream: true },
+          { id: 'ca_hdr_am', title: 'Mañana', type: 'session_header' },
           { id: 'ca1', time: '9:40', title: 'Música', type: 'music' },
           { id: 'ca2', time: '9:50', title: 'Canción 7 y oración', type: 'song' },
           { id: 'ca3', time: '10:00', title: '¿Cómo podemos hacer de Jehová nuestra mayor alegría?', type: 'talk' },
@@ -467,9 +623,10 @@
           { id: 'ca5', time: '10:30', title: '"¡Dichosos los que viven en tu casa!"', type: 'talk' },
           { id: 'ca6', time: '10:55', title: 'Canción 37 y anuncios', type: 'song' },
           { id: 'ca7', time: '11:05', title: 'Feliz el que se refugia en Jehová', type: 'talk' },
-          { id: 'ca8', time: '11:35', title: 'Discurso de bautismo: "Tu Padre, que mira en secreto, te lo pagará"', type: 'talk' },
+          { id: 'ca8', time: '11:35', title: 'DISCURSO DE BAUTISMO: "Tu Padre, que mira en secreto, te lo pagará"', type: 'talk' },
           { id: 'ca9', time: '12:05', title: 'Canción 38 e intermedio', type: 'song' },
-          { id: 'ca_att_pm', title: 'Asistencia (Tarde)', type: 'attendance', hasStream: true },
+          { id: 'ca_att_am', title: 'Asistencia (Mañana)', type: 'attendance', hasStream: true },
+          { id: 'ca_hdr_pm', title: 'Tarde', type: 'session_header' },
           { id: 'ca10', time: '1:20', title: 'Música', type: 'music' },
           { id: 'ca11', time: '1:30', title: 'Canción 111', type: 'song' },
           { id: 'ca12', time: '1:35', title: 'Experiencias', type: 'talk' },
@@ -483,7 +640,8 @@
           },
           { id: 'ca15', time: '3:00', title: 'Canción 88 y anuncios', type: 'song' },
           { id: 'ca16', time: '3:10', title: '"¡Feliz el pueblo que tiene por Dios a Jehová!"', type: 'talk' },
-          { id: 'ca17', time: '3:55', title: 'Canción 161 y oración', type: 'song' }
+          { id: 'ca17', time: '3:55', title: 'Canción 161 y oración', type: 'song' },
+          { id: 'ca_att_pm', title: 'Asistencia (Tarde)', type: 'attendance', hasStream: true }
         ],
         repaso: [
           { id: 'ca_rep1', title: '1. ¿Cómo podemos hacer de Jehová nuestra mayor alegría? (Sal. 37:4)', type: 'talk' },
@@ -900,20 +1058,27 @@
       useEffect(() => {
         const themeMeta = document.getElementById('theme-color-meta');
         const statusMeta = document.getElementById('apple-status-bar-meta');
+        const schemeMeta = document.getElementById('color-scheme-meta');
         if (isDarkMode) {
           document.documentElement.classList.add('dark');
           document.body.classList.add('dark');
           document.documentElement.style.backgroundColor = '#000000';
+          document.documentElement.style.colorScheme = 'dark';
           document.body.style.backgroundColor = '#000000';
+          document.body.style.colorScheme = 'dark';
           if (themeMeta) themeMeta.setAttribute('content', '#000000');
           if (statusMeta) statusMeta.setAttribute('content', 'black-translucent');
+          if (schemeMeta) schemeMeta.setAttribute('content', 'dark');
         } else {
           document.documentElement.classList.remove('dark');
           document.body.classList.remove('dark');
           document.documentElement.style.backgroundColor = '#F2F2F7';
+          document.documentElement.style.colorScheme = 'light';
           document.body.style.backgroundColor = '#F2F2F7';
+          document.body.style.colorScheme = 'light';
           if (themeMeta) themeMeta.setAttribute('content', '#F2F2F7');
           if (statusMeta) statusMeta.setAttribute('content', 'default');
+          if (schemeMeta) schemeMeta.setAttribute('content', 'light');
         }
         try { localStorage.setItem('asamblea-dark-mode', isDarkMode); } catch (e) {}
       }, [isDarkMode]);
@@ -1411,90 +1576,118 @@
               </div>
             )}
 
-            {currentScreen === 'program_view' && activeProgram && (
-              <div className="animate-fade-in">
-                <h1 className="text-[28px] font-bold tracking-tight mb-1 leading-tight text-black dark:text-white px-2">
-                  {programsDB.find(p => p.id === activeProgram)?.title}
-                </h1>
-                <p className="text-[#8E8E93] text-[14px] px-2 mb-5 uppercase tracking-wider font-semibold">
-                  Asamblea {programsDB.find(p => p.id === activeProgram)?.year}
-                </p>
+            {}
+            {currentScreen === 'program_view' && activeProgram && (() => {
+              const currentProg = programsDB.find(p => p.id === activeProgram);
+              const theme = getSectionTheme(activeProgram, activeTab);
+              const accentColor = theme.color;
 
-                {programsDB.find(p => p.id === activeProgram)?.days === 3 ? (
-                  <div className="bg-[#767680]/12 dark:bg-[#767680]/24 p-1 rounded-[10px] flex mb-6 mx-1">
-                    {['viernes', 'sabado', 'domingo'].map(tab => (
-                      <button 
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`flex-1 py-1.5 text-[14px] font-semibold rounded-[8px] capitalize transition-all ${activeTab === tab ? 'bg-white dark:bg-[#636366] text-black dark:text-white shadow-sm' : 'text-[#8E8E93] dark:text-[#EBEBF5]/60'}`}
-                      >
-                        {tab === 'sabado' ? 'Sábado' : tab}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-[#767680]/12 dark:bg-[#767680]/24 p-1 rounded-[10px] flex mb-6 mx-1">
-                    <button onClick={() => setActiveTab('programa')} className={`flex-1 py-1.5 text-[14px] font-semibold rounded-[8px] transition-all ${activeTab === 'programa' ? 'bg-white dark:bg-[#636366] text-black dark:text-white shadow-sm' : 'text-[#8E8E93] dark:text-[#EBEBF5]/60'}`}>Programa</button>
-                    <button onClick={() => setActiveTab('repaso')} className={`flex-1 py-1.5 text-[14px] font-semibold rounded-[8px] transition-all ${activeTab === 'repaso' ? 'bg-white dark:bg-[#636366] text-black dark:text-white shadow-sm' : 'text-[#8E8E93] dark:text-[#EBEBF5]/60'}`}>Repaso</button>
-                  </div>
-                )}
+              return (
+                <div className="animate-fade-in">
+                  {currentProg?.days === 3 ? (
+                    <div className="bg-[#767680]/12 dark:bg-[#767680]/24 p-1 rounded-[10px] flex mb-6 mx-1">
+                      {['viernes', 'sabado', 'domingo'].map(tab => (
+                        <button 
+                          key={tab}
+                          onClick={() => setActiveTab(tab)}
+                          className={`flex-1 py-1.5 text-[14px] font-semibold rounded-[8px] capitalize transition-all ${activeTab === tab ? 'bg-white dark:bg-[#636366] text-black dark:text-white shadow-sm' : 'text-[#8E8E93] dark:text-[#EBEBF5]/60'}`}
+                        >
+                          {tab === 'sabado' ? 'Sábado' : tab}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-[#767680]/12 dark:bg-[#767680]/24 p-1 rounded-[10px] flex mb-6 mx-1">
+                      <button onClick={() => setActiveTab('programa')} className={`flex-1 py-1.5 text-[14px] font-semibold rounded-[8px] transition-all ${activeTab === 'programa' ? 'bg-white dark:bg-[#636366] text-black dark:text-white shadow-sm' : 'text-[#8E8E93] dark:text-[#EBEBF5]/60'}`}>Programa</button>
+                      <button onClick={() => setActiveTab('repaso')} className={`flex-1 py-1.5 text-[14px] font-semibold rounded-[8px] transition-all ${activeTab === 'repaso' ? 'bg-white dark:bg-[#636366] text-black dark:text-white shadow-sm' : 'text-[#8E8E93] dark:text-[#EBEBF5]/60'}`}>Repaso</button>
+                    </div>
+                  )}
 
-                <div className="space-y-3.5">
-                  {programsDB.find(p => p.id === activeProgram)?.[activeTab]?.map((item) => (
-                    <div key={item.id} className="bg-white dark:bg-[#1C1C1E] rounded-[16px] p-4 sm:p-5 shadow-sm">
-                      {item.type === 'attendance' ? (
-                        <div>
-                          <h3 className="font-semibold text-black dark:text-white mb-3 text-[16px]">{item.title}</h3>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            <div className="flex justify-between items-center bg-[#F2F2F7] dark:bg-[#2C2C2E] px-3.5 py-2.5 rounded-xl">
-                              <span className="text-[#8E8E93] text-[15px] font-medium">Asistencia General</span>
-                              <input
-                                type="number"
-                                defaultValue={notesRef.current[item.id + '_general'] || ''}
-                                onChange={(e) => handleNoteChange(item.id + '_general', e.target.value)}
-                                className="w-20 bg-white dark:bg-[#1C1C1E] text-black dark:text-white text-center py-1 rounded-lg border border-[#C6C6C8] dark:border-[#38383A] focus:outline-none focus:border-[#007AFF] font-semibold text-[16px]"
-                                placeholder="0"
-                              />
-                            </div>
-                            {item.hasStream && (
+                  {/* Encabezado estético oficial del programa */}
+                  <div className="px-2 mb-6">
+                    <h1 style={{ color: accentColor }} className="text-[36px] font-bold tracking-tight leading-tight mb-2">
+                      {theme.label}
+                    </h1>
+                    <p className="text-[#636366] dark:text-[#98989D] text-[19px] leading-snug font-normal">
+                      {theme.quote}
+                    </p>
+                  </div>
+
+                  <div className="space-y-4 px-2">
+                    {currentProg?.[activeTab]?.map((item) => {
+                      if (item.type === 'session_header') {
+                        return (
+                          <div key={item.id} className="pt-4 pb-1 first:pt-1">
+                            <h2 style={{ color: accentColor }} className="text-[28px] font-bold tracking-tight leading-tight">
+                              {item.title}
+                            </h2>
+                          </div>
+                        );
+                      }
+
+                      if (item.type === 'attendance') {
+                        return (
+                          <div key={item.id} className="bg-white dark:bg-[#1C1C1E] rounded-[16px] p-4 shadow-sm border border-[#C6C6C8]/40 dark:border-[#38383A]/70 my-3">
+                            <h3 style={{ color: accentColor }} className="font-bold mb-3 text-[15px] uppercase tracking-wider">
+                              {item.title}
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                               <div className="flex justify-between items-center bg-[#F2F2F7] dark:bg-[#2C2C2E] px-3.5 py-2.5 rounded-xl">
-                                <span className="text-[#8E8E93] text-[15px] font-medium">Conectados (Stream)</span>
+                                <span className="text-[#8E8E93] text-[15px] font-medium">Asistencia General</span>
                                 <input
                                   type="number"
-                                  defaultValue={notesRef.current[item.id + '_stream'] || ''}
-                                  onChange={(e) => handleNoteChange(item.id + '_stream', e.target.value)}
-                                  className="w-20 bg-white dark:bg-[#1C1C1E] text-black dark:text-white text-center py-1 rounded-lg border border-[#C6C6C8] dark:border-[#38383A] focus:outline-none focus:border-[#007AFF] font-semibold text-[16px]"
+                                  defaultValue={notesRef.current[item.id + '_general'] || ''}
+                                  onChange={(e) => handleNoteChange(item.id + '_general', e.target.value)}
+                                  className="w-20 bg-white dark:bg-[#1C1C1E] text-black dark:text-white text-center py-1 rounded-lg border border-[#C6C6C8] dark:border-[#38383A] focus:outline-none font-semibold text-[16px]"
                                   placeholder="0"
                                 />
                               </div>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div>
-                          <div 
-                            className={`flex items-start gap-3 ${(item.type === 'talk' || item.type === 'song') ? 'cursor-pointer select-none' : ''}`}
-                            onClick={() => (item.type === 'talk' || item.type === 'song') && toggleItem(item.id)}
-                          >
-                            {item.time && (
-                              <div className="text-[#007AFF] font-semibold text-[15px] pt-0.5 shrink-0 w-[44px]">
-                                {item.time}
-                              </div>
-                            )}
-                            <div className="flex-1 flex justify-between items-start gap-2">
-                              <h3 className={`font-semibold text-[17px] leading-snug ${item.type === 'music' ? 'text-[#8E8E93]' : 'text-black dark:text-white'}`}>
-                                {item.title}
-                              </h3>
-                              {(item.type === 'talk' || item.type === 'song') && (
-                                expandedItems[item.id] 
-                                  ? <ChevronUp size={20} className="text-[#8E8E93] shrink-0 mt-0.5" /> 
-                                  : <ChevronDown size={20} className="text-[#8E8E93] shrink-0 mt-0.5" />
+                              {item.hasStream && (
+                                <div className="flex justify-between items-center bg-[#F2F2F7] dark:bg-[#2C2C2E] px-3.5 py-2.5 rounded-xl">
+                                  <span className="text-[#8E8E93] text-[15px] font-medium">Conectados (Stream)</span>
+                                  <input
+                                    type="number"
+                                    defaultValue={notesRef.current[item.id + '_stream'] || ''}
+                                    onChange={(e) => handleNoteChange(item.id + '_stream', e.target.value)}
+                                    className="w-20 bg-white dark:bg-[#1C1C1E] text-black dark:text-white text-center py-1 rounded-lg border border-[#C6C6C8] dark:border-[#38383A] focus:outline-none font-semibold text-[16px]"
+                                    placeholder="0"
+                                  />
+                                </div>
                               )}
                             </div>
                           </div>
+                        );
+                      }
+
+                      // Música y Canciones/Anuncios: estáticos (no se toman apuntes)
+                      if (item.type === 'music' || item.type === 'song') {
+                        return (
+                          <div key={item.id} className="py-1.5 text-[18px] leading-snug text-black dark:text-white">
+                            {item.time && <span className="mr-1.5">{item.time}</span>}
+                            <span>{item.title}</span>
+                          </div>
+                        );
+                      }
+
+                      // Discursos y Series de discursos: permiten tomar apuntes
+                      return (
+                        <div key={item.id} className="py-1.5">
+                          <div 
+                            className={`flex items-start justify-between gap-3 ${item.type === 'talk' ? 'cursor-pointer select-none active:opacity-70 transition-opacity' : ''}`}
+                            onClick={() => item.type === 'talk' && toggleItem(item.id)}
+                          >
+                            <div className="text-[18px] leading-snug text-black dark:text-white flex-1">
+                              {renderStyledTitle(item.title, accentColor, item.time)}
+                            </div>
+                            {item.type === 'talk' && (
+                              expandedItems[item.id] 
+                                ? <ChevronUp size={20} className="text-[#8E8E93] shrink-0 mt-1" /> 
+                                : <ChevronDown size={20} className="text-[#8E8E93] shrink-0 mt-1" />
+                            )}
+                          </div>
                           
-                          {(item.type === 'talk' || item.type === 'song') && expandedItems[item.id] && (
-                            <div className="mt-3">
+                          {item.type === 'talk' && expandedItems[item.id] && (
+                            <div className="mt-3 mb-2">
                               <RichNoteEditor
                                 id={item.id}
                                 value={notesRef.current[item.id] || ''}
@@ -1506,26 +1699,23 @@
                           )}
                           
                           {item.type === 'symposium' && (
-                            <div className="mt-3 pt-1 border-t border-[#C6C6C8]/30 dark:border-[#38383A]/60 divide-y divide-[#C6C6C8]/30 dark:divide-[#38383A]/60">
+                            <div className="mt-3 pl-5 space-y-3">
                               {item.parts.map((part) => (
-                                <div key={part.id} className="py-3 first:pt-2 last:pb-0">
+                                <div key={part.id} className="py-0.5">
                                   <div 
                                     onClick={() => toggleItem(part.id)} 
-                                    className="flex items-start justify-between gap-3 cursor-pointer select-none"
+                                    className="flex items-start justify-between gap-3 cursor-pointer select-none active:opacity-70 transition-opacity"
                                   >
-                                    <div className="flex items-start gap-2.5 flex-1">
-                                      <div className="w-2.5 h-2.5 rounded-full border-2 border-[#007AFF] bg-transparent mt-1.5 shrink-0"></div>
-                                      <h4 className="text-[16px] font-medium text-black dark:text-white leading-snug flex-1">
-                                        {part.title.replace(/^•\s*/, '')}
-                                      </h4>
+                                    <div className="text-[18px] font-normal text-black dark:text-white leading-snug flex-1">
+                                      {part.title}
                                     </div>
                                     {expandedItems[part.id] 
-                                      ? <ChevronUp size={18} className="text-[#8E8E93] shrink-0 mt-0.5" /> 
-                                      : <ChevronDown size={18} className="text-[#8E8E93] shrink-0 mt-0.5" />
+                                      ? <ChevronUp size={18} className="text-[#8E8E93] shrink-0 mt-1" /> 
+                                      : <ChevronDown size={18} className="text-[#8E8E93] shrink-0 mt-1" />
                                     }
                                   </div>
                                   {expandedItems[part.id] && (
-                                    <div className="mt-2.5">
+                                    <div className="mt-2.5 mb-2">
                                       <RichNoteEditor
                                         id={part.id}
                                         value={notesRef.current[part.id] || ''}
@@ -1540,12 +1730,12 @@
                             </div>
                           )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {currentScreen === 'custom_note' && activeProgram && (
               <div className="animate-fade-in">
