@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="dark" style="background-color: #000000; color-scheme: dark;">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
   <link rel="apple-touch-icon" sizes="192x192" href="./icon-192.png">
   <meta id="theme-color-meta" name="theme-color" content="#000000">
-  <meta id="color-scheme-meta" name="color-scheme" content="light dark">
+  <meta id="color-scheme-meta" name="color-scheme" content="dark">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta id="apple-status-bar-meta" name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,7 +17,11 @@
   <script>
     (function() {
       try {
-        var dark = localStorage.getItem('asamblea-dark-mode') === 'true';
+        var savedMode = localStorage.getItem('asamblea-dark-mode');
+        var dark = savedMode === null ? true : savedMode === 'true';
+        if (savedMode === null) {
+          localStorage.setItem('asamblea-dark-mode', 'true');
+        }
         var docEl = document.documentElement;
         var themeMeta = document.getElementById('theme-color-meta');
         var schemeMeta = document.getElementById('color-scheme-meta');
@@ -54,8 +58,12 @@
 
   <style>
     :root {
-      color-scheme: light;
-      background-color: #F2F2F7;
+      color-scheme: dark;
+      background-color: #000000;
+    }
+    html:not(.dark) {
+      color-scheme: light !important;
+      background-color: #F2F2F7 !important;
     }
     html.dark {
       color-scheme: dark !important;
@@ -65,37 +73,31 @@
       margin: 0;
       padding: 0;
       width: 100%;
+      min-height: 100%;
       min-height: 100vh;
       min-height: 100dvh;
-      background-color: #F2F2F7;
-      color: #000000;
+      background-color: #000000;
+      color: #FFFFFF;
       -webkit-tap-highlight-color: transparent;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       overscroll-behavior-y: none;
+    }
+    html:not(.dark), html:not(.dark) body {
+      background-color: #F2F2F7 !important;
+      color: #000000;
+      color-scheme: light !important;
     }
     html.dark, html.dark body, body.dark {
       background-color: #000000 !important;
       color: #FFFFFF;
       color-scheme: dark !important;
     }
-    /* Lienzo fijo de extremo a extremo para cubrir barras inferiores de Android/iOS */
-    body::before {
-      content: "";
-      position: fixed;
-      top: -100px;
-      left: -100px;
-      right: -100px;
-      bottom: -100px;
-      background-color: #F2F2F7;
-      z-index: -9999;
-      pointer-events: none;
-    }
-    html.dark body::before, body.dark::before {
-      background-color: #000000 !important;
-    }
-    body {
+    #root {
+      min-height: 100vh;
+      min-height: 100dvh;
+      background-color: inherit;
       padding-top: env(safe-area-inset-top);
-      padding-bottom: env(safe-area-inset-bottom);
+      padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
       padding-left: env(safe-area-inset-left);
       padding-right: env(safe-area-inset-right);
     }
@@ -149,9 +151,6 @@
     const Menu = ({ size = 24, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
     );
-    const MoreVertical = ({ size = 24, className = "" }) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-    );
     const Plus = ({ size = 24, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="M12 5v14"/></svg>
     );
@@ -160,9 +159,6 @@
     );
     const CloudLightning = ({ size = 24, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 16.326A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 .5 8.973"/><path d="m13 12-3 5h4l-3 5"/></svg>
-    );
-    const User = ({ size = 24, className = "" }) => (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     );
     const Loader2 = ({ size = 24, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
@@ -174,22 +170,21 @@
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
     );
 
-    // Iconografía estilo SF Symbols de Apple (Bote de basura y Caja de Archivo)
-    const AppleTrashIcon = ({ size = 22, className = "" }) => (
+    const AppleArchiveIcon = ({ size = 22, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="M3 6h18" />
-        <path d="M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6" />
-        <path d="M19 6l-.8 13.2a2 2 0 0 1-2 1.8H7.8a2 2 0 0 1-2-1.8L5 6" />
-        <line x1="10" y1="11" x2="10" y2="16.5" />
-        <line x1="14" y1="11" x2="14" y2="16.5" />
+        <rect x="2" y="4" width="20" height="5" rx="1.5" />
+        <path d="M4 9v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9" />
+        <path d="M10 13h4" />
       </svg>
     );
 
-    const AppleArchiveIcon = ({ size = 22, className = "" }) => (
+    const AppleTrashIcon = ({ size = 22, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <rect x="2.5" y="4" width="19" height="4.5" rx="1.2" />
-        <path d="M4.5 8.5v9.8a2.2 2.2 0 0 0 2.2 2.2h10.6a2.2 2.2 0 0 0 2.2-2.2V8.5" />
-        <path d="M9.5 13h5" />
+        <path d="M3 6h18" />
+        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+        <line x1="10" y1="11" x2="10" y2="17" />
+        <line x1="14" y1="11" x2="14" y2="17" />
       </svg>
     );
 
@@ -208,6 +203,7 @@
       if (!timestamp) return '';
       try {
         const d = new Date(timestamp);
+        if (isNaN(d.getTime())) return '';
         return d.toLocaleDateString('es-ES', {
           day: 'numeric',
           month: 'short',
@@ -218,9 +214,7 @@
       }
     };
 
-    // --- COMPONENTE DE DESLIZAMIENTO HACIA LA DERECHA ESTILO iOS ---
     const SwipeableItem = ({ itemId, openSwipeId, setOpenSwipeId, onArchive, onDelete, isArchived, onClick, children }) => {
-      const ACTION_WIDTH = 148;
       const [offsetX, setOffsetX] = useState(0);
       const [isDragging, setIsDragging] = useState(false);
       const startXRef = useRef(0);
@@ -228,6 +222,7 @@
       const currentBaseRef = useRef(0);
       const swipedRef = useRef(false);
       const directionLockedRef = useRef(null);
+      const ACTION_WIDTH = 152;
 
       useEffect(() => {
         if (openSwipeId !== itemId && offsetX !== 0) {
@@ -262,7 +257,6 @@
           swipedRef.current = true;
         }
 
-        // Permitir arrastrar hacia la derecha (y cerrar hacia la izquierda si estaba abierto)
         const nextOffset = Math.max(0, Math.min(ACTION_WIDTH + 24, currentBaseRef.current + dx));
         setOffsetX(nextOffset);
       };
@@ -300,7 +294,6 @@
 
       return (
         <div className="relative overflow-hidden rounded-[16px] select-none">
-          {/* Acciones reveladas a la izquierda al arrastrar la tarjeta hacia la derecha */}
           <div
             className="absolute inset-y-0 left-0 flex items-stretch overflow-hidden rounded-l-[16px]"
             style={{
@@ -338,7 +331,6 @@
             </button>
           </div>
 
-          {/* Tarjeta deslizable */}
           <div
             onTouchStart={(e) => beginDrag(e.touches[0].clientX, e.touches[0].clientY)}
             onTouchMove={(e) => moveDrag(e.touches[0].clientX, e.touches[0].clientY)}
@@ -583,7 +575,7 @@
           { id: 'cc6', time: '11:15', title: 'Ayudemos a otros a confiar en el "Dios vivo y verdadero"', type: 'talk' },
           { id: 'cc7', time: '11:35', title: 'DISCURSO DE BAUTISMO: "Tu Padre, que mira en secreto, te lo pagará"', type: 'talk' },
           { id: 'cc8', time: '12:05', title: 'Canción 29 e intermedio', type: 'song' },
-          { id: 'cc_att_am', title: 'Asistencia (Mañana)', type: 'attendance', hasStream: true },
+          { id: 'cc_att_am', title: 'Asistencia (Mañana)', type: 'attendance', hasStream: false },
           { id: 'cc_hdr_pm', title: 'Tarde', type: 'session_header' },
           { id: 'cc9', time: '1:20', title: 'Música', type: 'music' },
           { id: 'cc10', time: '1:30', title: 'Canción 8 y oración', type: 'song' },
@@ -599,7 +591,7 @@
           },
           { id: 'cc15', time: '3:30', title: '"El que confía en Jehová es feliz"', type: 'talk' },
           { id: 'cc16', time: '4:00', title: 'Canción 54 y oración', type: 'song' },
-          { id: 'cc_att_pm', title: 'Asistencia (Tarde)', type: 'attendance', hasStream: true }
+          { id: 'cc_att_pm', title: 'Asistencia (Tarde)', type: 'attendance', hasStream: false }
         ],
         repaso: [
           { id: 'cc_rep1', title: '1. ¿Cómo demostramos que confiamos en Jehová con todo nuestro corazón? (Prov. 3:5, 6)', type: 'talk' },
@@ -625,7 +617,7 @@
           { id: 'ca7', time: '11:05', title: 'Feliz el que se refugia en Jehová', type: 'talk' },
           { id: 'ca8', time: '11:35', title: 'DISCURSO DE BAUTISMO: "Tu Padre, que mira en secreto, te lo pagará"', type: 'talk' },
           { id: 'ca9', time: '12:05', title: 'Canción 38 e intermedio', type: 'song' },
-          { id: 'ca_att_am', title: 'Asistencia (Mañana)', type: 'attendance', hasStream: true },
+          { id: 'ca_att_am', title: 'Asistencia (Mañana)', type: 'attendance', hasStream: false },
           { id: 'ca_hdr_pm', title: 'Tarde', type: 'session_header' },
           { id: 'ca10', time: '1:20', title: 'Música', type: 'music' },
           { id: 'ca11', time: '1:30', title: 'Canción 111', type: 'song' },
@@ -641,7 +633,7 @@
           { id: 'ca15', time: '3:00', title: 'Canción 88 y anuncios', type: 'song' },
           { id: 'ca16', time: '3:10', title: '"¡Feliz el pueblo que tiene por Dios a Jehová!"', type: 'talk' },
           { id: 'ca17', time: '3:55', title: 'Canción 161 y oración', type: 'song' },
-          { id: 'ca_att_pm', title: 'Asistencia (Tarde)', type: 'attendance', hasStream: true }
+          { id: 'ca_att_pm', title: 'Asistencia (Tarde)', type: 'attendance', hasStream: false }
         ],
         repaso: [
           { id: 'ca_rep1', title: '1. ¿Cómo podemos hacer de Jehová nuestra mayor alegría? (Sal. 37:4)', type: 'talk' },
@@ -654,7 +646,7 @@
       }
     ];
 
-    const RichNoteEditor = ({ id, value, onChange, placeholder, fontSize, isCustomNote = false }) => {
+    const RichNoteEditor = ({ id, value, onChange, placeholder, fontSize, isCustomNote = false, refreshTrigger = 0 }) => {
       const mountRef = useRef(null);
       const editorNodeRef = useRef(null);
       const onChangeRef = useRef(onChange);
@@ -712,7 +704,7 @@
           div.removeEventListener('touchend', checkActiveFormats);
           div.removeEventListener('focus', checkActiveFormats);
         };
-      }, [id]);
+      }, [id, refreshTrigger]);
 
       useEffect(() => {
         if (editorNodeRef.current) {
@@ -796,6 +788,38 @@
       );
     };
 
+    const getOrCreateDeviceUser = () => {
+      try {
+        const savedUser = localStorage.getItem('asamblea-active-user');
+        if (savedUser) {
+          const parsed = JSON.parse(savedUser);
+          if (parsed && parsed.username) return parsed;
+        }
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('asamblea-notas-')) {
+            const extractedUser = k.replace('asamblea-notas-', '').trim();
+            if (extractedUser) {
+              const uObj = { username: extractedUser };
+              localStorage.setItem('asamblea-active-user', JSON.stringify(uObj));
+              return uObj;
+            }
+          }
+        }
+        let deviceId = localStorage.getItem('asamblea-device-uid');
+        if (!deviceId) {
+          const randomPart = Math.random().toString(36).substring(2, 8) + Date.now().toString(36).slice(-4);
+          deviceId = `disp_${randomPart}`;
+          localStorage.setItem('asamblea-device-uid', deviceId);
+        }
+        const newObj = { username: deviceId };
+        localStorage.setItem('asamblea-active-user', JSON.stringify(newObj));
+        return newObj;
+      } catch (e) {
+        return { username: 'default' };
+      }
+    };
+
     function App() {
       const rescueAndLoadUserData = (username) => {
         const cleanU = (username || '').trim().toLowerCase();
@@ -867,44 +891,12 @@
         return { notes: mergedNotes, customList: mergedCustomList };
       };
 
-      const [currentUser, setCurrentUser] = useState(() => {
-        try {
-          const savedUser = localStorage.getItem('asamblea-active-user');
-          if (savedUser) return JSON.parse(savedUser);
-          for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
-            if (k && k.startsWith('asamblea-notas-')) {
-              const extractedUser = k.replace('asamblea-notas-', '').trim();
-              if (extractedUser) {
-                const uObj = { username: extractedUser };
-                localStorage.setItem('asamblea-active-user', JSON.stringify(uObj));
-                return uObj;
-              }
-            }
-          }
-          return null;
-        } catch (e) { return null; }
-      });
-
-      const [currentScreen, setCurrentScreen] = useState(() => {
-        try {
-          if (localStorage.getItem('asamblea-active-user')) return 'programs';
-          for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
-            if (k && k.startsWith('asamblea-notas-')) return 'programs';
-          }
-          return 'login';
-        } catch (e) { return 'login'; }
-      });
-
-      const [isDbReady] = useState(true);
-      const [loginForm, setLoginForm] = useState({ username: '' });
-      const [loginError, setLoginError] = useState('');
-      const [isLoggingIn, setIsLoggingIn] = useState(false);
+      const [currentUser] = useState(() => getOrCreateDeviceUser());
+      const [currentScreen, setCurrentScreen] = useState('programs');
 
       const initialDataRef = useRef(null);
       if (!initialDataRef.current) {
-        initialDataRef.current = rescueAndLoadUserData(currentUser?.username || '');
+        initialDataRef.current = rescueAndLoadUserData(currentUser?.username || 'default');
       }
 
       const [activeProgram, setActiveProgram] = useState(null);
@@ -915,7 +907,12 @@
       const [isSaving, setIsSaving] = useState(false);
 
       const [isDarkMode, setIsDarkMode] = useState(() => {
-        try { return localStorage.getItem('asamblea-dark-mode') === 'true'; } catch (e) { return false; }
+        try {
+          const saved = localStorage.getItem('asamblea-dark-mode');
+          return saved === null ? true : saved === 'true';
+        } catch (e) {
+          return true;
+        }
       });
 
       const [fontSize, setFontSize] = useState(() => {
@@ -947,6 +944,7 @@
       const [updateAvailable, setUpdateAvailable] = useState(false);
       const [detectedVersion, setDetectedVersion] = useState('');
       const [isUpdatingApp, setIsUpdatingApp] = useState(false);
+      const [importVersion, setImportVersion] = useState(0);
 
       const saveTimeoutRef = useRef(null);
       const fileInputRef = useRef(null);
@@ -1022,11 +1020,9 @@
       const handleInstallUpdate = async () => {
         setIsUpdatingApp(true);
         try {
-          // 1. Asegurar que cualquier nota en curso quede guardada en localStorage
           if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
           saveNotesNow(notesRef.current);
 
-          // 2. Si detectamos nueva versión del archivo sw.js, registrarla como instalada
           if (detectedVersion) {
             localStorage.setItem('asamblea-installed-sw-version', detectedVersion);
           } else {
@@ -1038,18 +1034,15 @@
             } catch (e) {}
           }
 
-          // 3. Activar el nuevo Service Worker si está en espera
           if (waitingWorkerRef.current) {
             waitingWorkerRef.current.postMessage({ type: 'SKIP_WAITING' });
           }
 
-          // 4. Limpiar exclusivamente el Cache Storage de archivos (NO toca localStorage ni tus notas)
           if ('caches' in window) {
             const keys = await caches.keys();
             await Promise.all(keys.map(k => caches.delete(k)));
           }
 
-          // 5. Actualizar registros del Service Worker y recargar la app limpia
           if ('serviceWorker' in navigator) {
             const regs = await navigator.serviceWorker.getRegistrations();
             for (const reg of regs) {
@@ -1077,7 +1070,7 @@
         const backupPayload = {
           version: 1,
           exportedAt: Date.now(),
-          username: currentUser?.username || 'usuario',
+          username: currentUser?.username || 'dispositivo',
           notes: notesRef.current,
           customNotesList: customNotesList,
           archivedPrograms: archivedItems,
@@ -1090,7 +1083,7 @@
           const a = document.createElement('a');
           const dateStr = new Date().toISOString().slice(0, 10);
           a.href = url;
-          a.download = `Respaldo_Apuntes_${currentUser?.username || 'usuario'}_${dateStr}.json`;
+          a.download = `Respaldo_Mis_Apuntes_${dateStr}.json`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -1116,10 +1109,8 @@
             }
 
             const u = currentUser?.username || 'default';
-            const mergedNotes = { ...notesRef.current, ...(data.notes || {}) };
-            notesRef.current = mergedNotes;
-            setNotes(mergedNotes);
-            localStorage.setItem(`asamblea-notas-${u}`, JSON.stringify(mergedNotes));
+            const importedNotes = (data.notes && typeof data.notes === 'object') ? data.notes : {};
+            const mergedNotes = { ...notesRef.current, ...importedNotes };
 
             const existingMap = {};
             customNotesList.forEach(item => {
@@ -1131,15 +1122,55 @@
               });
             }
 
-            const mergedList = Object.values(existingMap).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-            setCustomNotesList(mergedList);
-            localStorage.setItem(`asamblea-custom-list-${u}`, JSON.stringify(mergedList));
+            Object.keys(importedNotes).forEach((noteId, idx) => {
+              if (noteId.startsWith('custom_') && !existingMap[noteId]) {
+                const timestamp = parseInt(noteId.replace('custom_', ''), 10) || Date.now();
+                existingMap[noteId] = {
+                  id: noteId,
+                  title: 'Nota restaurada',
+                  createdAt: timestamp,
+                  color: NOTE_COLORS[idx % NOTE_COLORS.length]
+                };
+              }
+            });
 
-            if (data.archivedPrograms && typeof data.archivedPrograms === 'object') {
-              const nextArch = { ...archivedItems, ...data.archivedPrograms };
-              setArchivedItems(nextArch);
-              localStorage.setItem(`asamblea-archived-${u}`, JSON.stringify(nextArch));
+            const mergedList = Object.values(existingMap).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+            const nextDeleted = { ...deletedItems };
+            if (Array.isArray(data.customNotesList)) {
+              data.customNotesList.forEach(item => {
+                if (item && item.id) delete nextDeleted[item.id];
+              });
             }
+            Object.keys(importedNotes).forEach(noteKey => {
+              delete nextDeleted[noteKey];
+            });
+            programsDB.forEach(prog => {
+              if (!data.deletedPrograms || !data.deletedPrograms[prog.id]) {
+                delete nextDeleted[prog.id];
+              }
+            });
+
+            const nextArch = { ...archivedItems, ...(data.archivedPrograms || {}) };
+            if (Array.isArray(data.customNotesList)) {
+              data.customNotesList.forEach(item => {
+                if (item && item.id && (!data.archivedPrograms || !data.archivedPrograms[item.id])) {
+                  delete nextArch[item.id];
+                }
+              });
+            }
+
+            notesRef.current = mergedNotes;
+            setNotes(mergedNotes);
+            setCustomNotesList(mergedList);
+            setDeletedItems(nextDeleted);
+            setArchivedItems(nextArch);
+            setImportVersion(v => v + 1);
+
+            localStorage.setItem(`asamblea-notas-${u}`, JSON.stringify(mergedNotes));
+            localStorage.setItem(`asamblea-custom-list-${u}`, JSON.stringify(mergedList));
+            localStorage.setItem(`asamblea-deleted-${u}`, JSON.stringify(nextDeleted));
+            localStorage.setItem(`asamblea-archived-${u}`, JSON.stringify(nextArch));
 
             setIsDrawerOpen(false);
             showToast('¡Notas restauradas con éxito!');
@@ -1198,48 +1229,6 @@
         try { localStorage.setItem('asamblea-dark-mode', isDarkMode); } catch (e) {}
       }, [isDarkMode]);
 
-      useEffect(() => {
-        if (currentUser?.username) {
-          const u = currentUser.username;
-          try {
-            const rescued = rescueAndLoadUserData(u);
-            notesRef.current = rescued.notes;
-            setNotes(rescued.notes);
-            setCustomNotesList(rescued.customList);
-
-            const savedArch = localStorage.getItem(`asamblea-archived-${u}`);
-            setArchivedItems(savedArch ? JSON.parse(savedArch) : {});
-
-            const savedDel = localStorage.getItem(`asamblea-deleted-${u}`);
-            setDeletedItems(savedDel ? JSON.parse(savedDel) : {});
-          } catch (e) {}
-        }
-      }, [currentUser]);
-
-      const handleLogin = () => {
-        const cleanUser = loginForm.username.trim().toLowerCase();
-        if (!cleanUser) {
-          setLoginError('Por favor, ingresa tu nombre de usuario');
-          return;
-        }
-        setIsLoggingIn(true);
-        setTimeout(() => {
-          const userObj = { username: cleanUser };
-          setCurrentUser(userObj);
-          try { localStorage.setItem('asamblea-active-user', JSON.stringify(userObj)); } catch (e) {}
-          setIsLoggingIn(false);
-          setLoginError('');
-          setCurrentScreen('programs');
-        }, 250);
-      };
-
-      const handleLogout = () => {
-        try { localStorage.removeItem('asamblea-active-user'); } catch (e) {}
-        setCurrentUser(null);
-        setIsDrawerOpen(false);
-        setCurrentScreen('login');
-      };
-
       const saveNotesNow = (updatedNotes) => {
         const u = currentUser?.username || 'default';
         try {
@@ -1247,11 +1236,15 @@
         } catch (e) {}
       };
 
-      const handleNoteChange = (id, val) => {
+      const handleNoteChange = (id, val, immediate = false) => {
         setIsSaving(true);
         const next = { ...notesRef.current, [id]: val };
         notesRef.current = next;
         saveNotesNow(next);
+
+        if (immediate) {
+          setNotes({ ...notesRef.current });
+        }
 
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = setTimeout(() => {
@@ -1376,8 +1369,7 @@
         element.style.fontFamily = '-apple-system, BlinkMacSystemFont, Arial, sans-serif';
         element.style.color = '#1C1C1E';
 
-        let html = `<h1 style="color: #007AFF; text-align: center; margin-bottom: 5px; font-size: 24px;">Mis Apuntes</h1>`;
-        html += `<p style="text-align: center; color: #8E8E93; margin-top: 0; margin-bottom: 30px; font-size: 14px;">Usuario: ${currentUser?.username || ''}</p>`;
+        let html = `<h1 style="color: #007AFF; text-align: center; margin-bottom: 24px; font-size: 24px;">Mis Apuntes</h1>`;
 
         if (currentScreen === 'custom_note' && activeProgram) {
           const noteObj = customNotesList.find(n => n.id === activeProgram);
@@ -1394,8 +1386,15 @@
                 if (item.type === 'attendance') {
                   const gen = currentNotes[item.id + '_general'];
                   const str = currentNotes[item.id + '_stream'];
-                  if (gen || str) {
-                    html += `<p style="font-size: 13px; color: #636366;"><strong>${item.title}:</strong> General: ${gen || 0} | Stream: ${str || 0}</p>`;
+                  if (prog.days === 3) {
+                    if (gen || str) {
+                      const totalAtt = (parseInt(gen || '0', 10) || 0) + (parseInt(str || '0', 10) || 0);
+                      html += `<p style="font-size: 13px; color: #636366;"><strong>${item.title}:</strong> Presencial: ${gen || 0} | Streaming: ${str || 0} | Total: ${totalAtt}</p>`;
+                    }
+                  } else {
+                    if (gen) {
+                      html += `<p style="font-size: 13px; color: #636366;"><strong>${item.title}:</strong> Presencial: ${gen}</p>`;
+                    }
                   }
                 } else {
                   if (currentNotes[item.id] && currentNotes[item.id].trim() !== '' && currentNotes[item.id] !== '<b>Orador: </b><br><br>') {
@@ -1420,65 +1419,13 @@
         if (window.html2pdf) {
           window.html2pdf().set({
             margin: 15,
-            filename: `Apuntes_${currentUser?.username || 'Asamblea'}.pdf`,
+            filename: `Mis_Apuntes_Asamblea.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
           }).from(element).save();
         }
       };
-
-      if (currentScreen === 'login') {
-        return (
-          <div className="min-h-screen flex flex-col justify-center px-6 animate-fade-in bg-[#F2F2F7] dark:bg-[#000000]">
-            <div className="max-w-sm w-full mx-auto">
-              <div className="text-center mb-6">
-                <h1 className="text-[34px] font-bold tracking-tight mb-1 text-black dark:text-white">Mis Apuntes</h1>
-                <p className="text-[#8E8E93] text-[17px]">Inicia sesión para continuar</p>
-              </div>
-              
-              {!isDbReady ? (
-                <div className="flex flex-col items-center justify-center py-8">
-                  <Loader2 className="animate-spin text-[#8E8E93] mb-4" size={32} />
-                  <p className="text-[#8E8E93] text-[15px]">Conectando...</p>
-                </div>
-              ) : (
-                <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="space-y-3">
-                  {loginError && (
-                    <div className="bg-[#FF3B30]/10 text-[#FF3B30] p-3 rounded-2xl text-[15px] text-center mb-2">
-                      {loginError}
-                    </div>
-                  )}
-                  
-                  <div className="bg-white dark:bg-[#1C1C1E] rounded-full overflow-hidden border border-[#C6C6C8] dark:border-[#38383A] shadow-sm">
-                    <input 
-                      type="text"
-                      value={loginForm.username}
-                      onChange={(e) => setLoginForm({ username: e.target.value })}
-                      className="w-full px-5 py-3 text-[17px] bg-transparent focus:outline-none text-black dark:text-white placeholder-[#8E8E93]"
-                      placeholder="Tu usuario"
-                      autoCapitalize="none"
-                      autoCorrect="off"
-                    />
-                  </div>
-                  
-                  <button
-                    type="submit"
-                    disabled={isLoggingIn}
-                    className="w-full bg-[#007AFF] text-white font-semibold text-[17px] py-3 rounded-full active:bg-[#0062CC] transition-colors flex justify-center items-center shadow-sm"
-                  >
-                    {isLoggingIn ? <Loader2 className="animate-spin" size={20} /> : 'Continuar'}
-                  </button>
-
-                  <p className="text-[13px] text-[#8E8E93] text-center pt-3 px-4">
-                    Tus apuntes se sincronizarán automáticamente en tu dispositivo.
-                  </p>
-                </form>
-              )}
-            </div>
-          </div>
-        );
-      }
 
       const activeProgramsList = programsDB.filter(p => !archivedItems[p.id] && !deletedItems[p.id]);
       const activeCustomNotes = customNotesList.filter(n => !archivedItems[n.id] && !deletedItems[n.id]);
@@ -1487,7 +1434,20 @@
       const totalArchivedCount = archivedProgramsList.length + archivedCustomNotes.length;
 
       return (
-        <div className="min-h-screen bg-[#F2F2F7] dark:bg-[#000000] text-black dark:text-white font-sans pb-24 selection:bg-[#007AFF]/30">
+        <div className="min-h-screen bg-[#F2F2F7] dark:bg-[#000000] text-black dark:text-white font-sans pb-28 selection:bg-[#007AFF]/30">
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'fixed',
+              left: 0,
+              right: 0,
+              bottom: '-120px',
+              height: '160px',
+              backgroundColor: isDarkMode ? '#000000' : '#F2F2F7',
+              zIndex: 0,
+              pointerEvents: 'none'
+            }}
+          />
           <input
             ref={fileInputRef}
             type="file"
@@ -1502,7 +1462,6 @@
             </div>
           )}
 
-          {/* CARTEL DE NUEVA VERSIÓN DISPONIBLE (ESTILO iOS) */}
           {updateAvailable && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/50 backdrop-blur-sm animate-fade-in">
               <div className="bg-white dark:bg-[#1C1C1E] w-full max-w-[310px] rounded-[20px] overflow-hidden shadow-2xl border border-[#C6C6C8]/40 dark:border-[#38383A] text-center">
@@ -1539,7 +1498,6 @@
             </div>
           )}
           
-          {}
           <header className="sticky top-0 z-40 bg-[#F2F2F7]/85 dark:bg-[#000000]/85 backdrop-blur-md border-b border-[#C6C6C8]/60 dark:border-[#38383A]">
             <div className="flex items-center justify-between px-2 h-12 max-w-2xl mx-auto">
               <div className="w-24 flex items-center justify-start">
@@ -1644,7 +1602,6 @@
               </div>
             )}
 
-            {/* APARTADO ARCHIVO */}
             {currentScreen === 'archive' && (
               <div className="animate-fade-in">
                 <div className="mb-5 px-2">
@@ -1664,7 +1621,7 @@
                   <div className="space-y-6">
                     {archivedProgramsList.length > 0 && (
                       <div>
-                        <h2 className="text-[18px] font-bold tracking-tight mb-3 px-2 text-[#8E8E93] uppercase text-[13px]">Programas Archivados</h2>
+                        <h2 className="text-[13px] font-bold tracking-wider uppercase mb-3 px-2 text-[#8E8E93]">Programas Archivados</h2>
                         <div className="space-y-3.5">
                           {archivedProgramsList.map(prog => (
                             <SwipeableItem
@@ -1728,7 +1685,6 @@
               </div>
             )}
 
-            {}
             {currentScreen === 'program_view' && activeProgram && (() => {
               const currentProg = programsDB.find(p => p.id === activeProgram);
               const theme = getSectionTheme(activeProgram, activeTab);
@@ -1755,7 +1711,6 @@
                     </div>
                   )}
 
-                  {/* Encabezado estético oficial del programa */}
                   <div className="px-2 mb-6">
                     <h1 style={{ color: accentColor }} className="text-[36px] font-bold tracking-tight leading-tight mb-2">
                       {theme.label}
@@ -1778,40 +1733,68 @@
                       }
 
                       if (item.type === 'attendance') {
+                        const isRegional = currentProg?.days === 3;
+                        const valPresencial = notes[item.id + '_general'] ?? notesRef.current[item.id + '_general'] ?? '';
+                        const valStreaming = notes[item.id + '_stream'] ?? notesRef.current[item.id + '_stream'] ?? '';
+                        const numPresencial = parseInt(valPresencial, 10) || 0;
+                        const numStreaming = parseInt(valStreaming, 10) || 0;
+                        const totalSum = numPresencial + numStreaming;
+
                         return (
                           <div key={item.id} className="bg-white dark:bg-[#1C1C1E] rounded-[16px] p-4 shadow-sm border border-[#C6C6C8]/40 dark:border-[#38383A]/70 my-3">
                             <h3 style={{ color: accentColor }} className="font-bold mb-3 text-[15px] uppercase tracking-wider">
                               {item.title}
                             </h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                              <div className="flex justify-between items-center bg-[#F2F2F7] dark:bg-[#2C2C2E] px-3.5 py-2.5 rounded-xl">
-                                <span className="text-[#8E8E93] text-[15px] font-medium">Asistencia General</span>
-                                <input
-                                  type="number"
-                                  defaultValue={notesRef.current[item.id + '_general'] || ''}
-                                  onChange={(e) => handleNoteChange(item.id + '_general', e.target.value)}
-                                  className="w-20 bg-white dark:bg-[#1C1C1E] text-black dark:text-white text-center py-1 rounded-lg border border-[#C6C6C8] dark:border-[#38383A] focus:outline-none font-semibold text-[16px]"
-                                  placeholder="0"
-                                />
-                              </div>
-                              {item.hasStream && (
+                            {isRegional ? (
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                 <div className="flex justify-between items-center bg-[#F2F2F7] dark:bg-[#2C2C2E] px-3.5 py-2.5 rounded-xl">
-                                  <span className="text-[#8E8E93] text-[15px] font-medium">Conectados (Stream)</span>
+                                  <span className="text-[#8E8E93] text-[15px] font-medium">Presencial</span>
                                   <input
                                     type="number"
-                                    defaultValue={notesRef.current[item.id + '_stream'] || ''}
-                                    onChange={(e) => handleNoteChange(item.id + '_stream', e.target.value)}
+                                    value={valPresencial}
+                                    onChange={(e) => handleNoteChange(item.id + '_general', e.target.value, true)}
                                     className="w-20 bg-white dark:bg-[#1C1C1E] text-black dark:text-white text-center py-1 rounded-lg border border-[#C6C6C8] dark:border-[#38383A] focus:outline-none font-semibold text-[16px]"
                                     placeholder="0"
                                   />
                                 </div>
-                              )}
-                            </div>
+                                <div className="flex justify-between items-center bg-[#F2F2F7] dark:bg-[#2C2C2E] px-3.5 py-2.5 rounded-xl">
+                                  <span className="text-[#8E8E93] text-[15px] font-medium">Streaming</span>
+                                  <input
+                                    type="number"
+                                    value={valStreaming}
+                                    onChange={(e) => handleNoteChange(item.id + '_stream', e.target.value, true)}
+                                    className="w-20 bg-white dark:bg-[#1C1C1E] text-black dark:text-white text-center py-1 rounded-lg border border-[#C6C6C8] dark:border-[#38383A] focus:outline-none font-semibold text-[16px]"
+                                    placeholder="0"
+                                  />
+                                </div>
+                                <div className="flex justify-between items-center bg-[#F2F2F7] dark:bg-[#2C2C2E] px-3.5 py-2.5 rounded-xl">
+                                  <span className="text-[#8E8E93] text-[15px] font-medium">Total</span>
+                                  <div
+                                    style={{ color: accentColor }}
+                                    className="w-20 bg-white/60 dark:bg-[#1C1C1E]/60 text-center py-1 rounded-lg border border-[#C6C6C8]/60 dark:border-[#38383A] font-bold text-[16px] select-none"
+                                  >
+                                    {totalSum}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-1 gap-2.5">
+                                <div className="flex justify-between items-center bg-[#F2F2F7] dark:bg-[#2C2C2E] px-3.5 py-2.5 rounded-xl">
+                                  <span className="text-[#8E8E93] text-[15px] font-medium">Presencial</span>
+                                  <input
+                                    type="number"
+                                    value={valPresencial}
+                                    onChange={(e) => handleNoteChange(item.id + '_general', e.target.value, true)}
+                                    className="w-24 bg-white dark:bg-[#1C1C1E] text-black dark:text-white text-center py-1 rounded-lg border border-[#C6C6C8] dark:border-[#38383A] focus:outline-none font-semibold text-[16px]"
+                                    placeholder="0"
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       }
 
-                      // Música y Canciones/Anuncios: estáticos (no se toman apuntes)
                       if (item.type === 'music' || item.type === 'song') {
                         return (
                           <div key={item.id} className="py-1.5 text-[18px] leading-snug text-black dark:text-white">
@@ -1821,7 +1804,6 @@
                         );
                       }
 
-                      // Discursos y Series de discursos: permiten tomar apuntes
                       return (
                         <div key={item.id} className="py-1.5">
                           <div 
@@ -1846,6 +1828,7 @@
                                 onChange={(val) => handleNoteChange(item.id, val)}
                                 placeholder="Escribe tus apuntes aquí..."
                                 fontSize={fontSize}
+                                refreshTrigger={importVersion}
                               />
                             </div>
                           )}
@@ -1874,6 +1857,7 @@
                                         onChange={(val) => handleNoteChange(part.id, val)}
                                         placeholder="Escribe tus apuntes aquí..."
                                         fontSize={fontSize}
+                                        refreshTrigger={importVersion}
                                       />
                                     </div>
                                   )}
@@ -1908,22 +1892,22 @@
                   placeholder="Empieza a escribir tu nota..." 
                   fontSize={fontSize}
                   isCustomNote={true}
+                  refreshTrigger={importVersion}
                 />
               </div>
             )}
           </main>
 
-          {}
           {isDrawerOpen && (
             <div className="fixed inset-0 z-50 flex items-stretch justify-start">
               <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setIsDrawerOpen(false)}></div>
               <div className="bg-[#F2F2F7] dark:bg-[#1C1C1E] w-[84%] max-w-sm shadow-2xl z-10 animate-slide-right flex flex-col">
                 <div className="p-6 pt-10 border-b border-[#C6C6C8]/50 dark:border-[#38383A] bg-white dark:bg-[#2C2C2E]">
                   <div className="w-14 h-14 bg-[#007AFF]/10 text-[#007AFF] rounded-full flex items-center justify-center mb-3 mx-auto">
-                    <User size={28} />
+                    <Cloud size={28} />
                   </div>
-                  <h3 className="text-center font-semibold text-[19px] text-black dark:text-white">{currentUser?.username}</h3>
-                  <p className="text-center text-[13px] text-[#8E8E93]">Sesión activa</p>
+                  <h3 className="text-center font-semibold text-[19px] text-black dark:text-white">Mis Apuntes</h3>
+                  <p className="text-center text-[13px] text-[#8E8E93]">Guardado automático activo</p>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-5">
@@ -1987,11 +1971,11 @@
                     <div className="bg-white dark:bg-[#2C2C2E] rounded-xl overflow-hidden divide-y divide-[#C6C6C8]/30 dark:divide-[#38383A]">
                       <button onClick={handleExportBackup} className="w-full flex items-center gap-3 p-3.5 text-left text-[15px] font-medium text-[#007AFF] active:bg-[#E5E5EA] dark:active:bg-[#3A3A3C] transition-colors">
                         <Download size={18} />
-                        <span>Exportar Notas</span>
+                        <span>Exportar mis notas</span>
                       </button>
                       <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-3 p-3.5 text-left text-[15px] font-medium text-[#007AFF] active:bg-[#E5E5EA] dark:active:bg-[#3A3A3C] transition-colors">
                         <Upload size={18} />
-                        <span>Importar notas</span>
+                        <span>Importar mis notas</span>
                       </button>
                       <button onClick={handleExportPDF} className="w-full flex items-center gap-3 p-3.5 text-left text-[15px] font-medium text-[#007AFF] active:bg-[#E5E5EA] dark:active:bg-[#3A3A3C] transition-colors">
                         <Download size={18} />
@@ -2005,12 +1989,6 @@
                       Instalar Aplicación en el celular
                     </button>
                   )}
-                </div>
-
-                <div className="p-4 border-t border-[#C6C6C8]/40 dark:border-[#38383A]">
-                  <button onClick={handleLogout} className="w-full py-3 rounded-xl bg-[#FF3B30]/10 text-[#FF3B30] font-semibold text-[16px]">
-                    Cerrar Sesión
-                  </button>
                 </div>
               </div>
             </div>
