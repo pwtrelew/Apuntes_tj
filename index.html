@@ -15,6 +15,12 @@
   <meta name="apple-mobile-web-app-title" content="Mis Apuntes">
 
   <script>
+    window.addEventListener('unhandledrejection', function(event) {
+      if (event && event.reason && String(event.reason).indexOf('ServiceWorker') !== -1) {
+        event.preventDefault();
+      }
+    });
+
     (function() {
       try {
         var savedMode = localStorage.getItem('asamblea-dark-mode');
@@ -820,6 +826,19 @@
       }
     };
 
+    const isServiceWorkerSupported = () => {
+      try {
+        if (!('serviceWorker' in navigator)) return false;
+        if (window.location.origin === 'null' || !window.location.origin) return false;
+        if (window.location.protocol !== 'https:' && window.location.protocol !== 'http:') return false;
+        if (window.location.hostname.includes('usercontent.goog')) return false;
+        if (document.URL.startsWith('about:') || document.URL.startsWith('blob:') || document.URL.startsWith('data:')) return false;
+        return true;
+      } catch (e) {
+        return false;
+      }
+    };
+
     function App() {
       const rescueAndLoadUserData = (username) => {
         const cleanU = (username || '').trim().toLowerCase();
@@ -952,6 +971,8 @@
 
       useEffect(() => {
         let isMounted = true;
+        const canUseSw = isServiceWorkerSupported();
+        if (!canUseSw) return;
 
         const checkSwVersionFromFile = async () => {
           try {
@@ -974,39 +995,37 @@
           } catch (e) {}
         };
 
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(reg => {
-            if (reg.waiting) {
-              waitingWorkerRef.current = reg.waiting;
-              if (isMounted) setUpdateAvailable(true);
-            }
-
-            reg.addEventListener('updatefound', () => {
-              const newWorker = reg.installing;
-              if (newWorker) {
-                newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    waitingWorkerRef.current = newWorker;
-                    if (isMounted) setUpdateAvailable(true);
-                  }
-                });
+        try {
+          Promise.resolve(navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }))
+            .then(reg => {
+              if (!reg) return;
+              if (reg.waiting) {
+                waitingWorkerRef.current = reg.waiting;
+                if (isMounted) setUpdateAvailable(true);
               }
-            });
 
-            reg.update().catch(() => {});
-          }).catch(() => {});
-        }
+              reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      waitingWorkerRef.current = newWorker;
+                      if (isMounted) setUpdateAvailable(true);
+                    }
+                  });
+                }
+              });
+
+              Promise.resolve(reg.update()).catch(() => {});
+            })
+            .catch(() => {});
+        } catch (e) {}
 
         checkSwVersionFromFile();
 
         const handleVisibility = () => {
           if (document.visibilityState === 'visible') {
             checkSwVersionFromFile();
-            if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.getRegistration().then(reg => {
-                if (reg) reg.update().catch(() => {});
-              });
-            }
           }
         };
 
@@ -1041,13 +1060,6 @@
           if ('caches' in window) {
             const keys = await caches.keys();
             await Promise.all(keys.map(k => caches.delete(k)));
-          }
-
-          if ('serviceWorker' in navigator) {
-            const regs = await navigator.serviceWorker.getRegistrations();
-            for (const reg of regs) {
-              await reg.update().catch(() => {});
-            }
           }
         } catch (e) {}
 
