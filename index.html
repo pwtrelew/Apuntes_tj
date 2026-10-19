@@ -138,6 +138,12 @@
   <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous"></script>
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
 </head>
 <body class="bg-[#F2F2F7] dark:bg-[#000000] text-black dark:text-white antialiased selection:bg-[#007AFF]/30">
   <div id="root"></div>
@@ -175,6 +181,34 @@
     const Upload = ({ size = 24, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
     );
+    const FolderIcon = ({ size = 20, className = "" }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
+      </svg>
+    );
+    const FolderPlusIcon = ({ size = 20, className = "" }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
+        <line x1="12" x2="12" y1="10" y2="16" />
+        <line x1="9" x2="15" y1="13" y2="13" />
+      </svg>
+    );
+    const CalendarBookIcon = ({ size = 20, className = "" }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+        <path d="M8 7h6" />
+        <path d="M8 11h8" />
+      </svg>
+    );
+    const FileTextIcon = ({ size = 20, className = "" }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="16" x2="8" y1="13" y2="13" />
+        <line x1="16" x2="8" y1="17" y2="17" />
+        <line x1="10" x2="8" y1="9" y2="9" />
+      </svg>
+    );
 
     const AppleArchiveIcon = ({ size = 22, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -203,6 +237,15 @@
       '#5856D6',
       '#00C7BE',
       '#FFCC00'
+    ];
+
+    const PROGRAM_PALETTES = [
+      { name: 'Naranja Cálido', color: '#E5854B' },
+      { name: 'Verde Salvia', color: '#87B896' },
+      { name: 'Azul Acero', color: '#6CA6CD' },
+      { name: 'Ámbar Dorado', color: '#D9822B' },
+      { name: 'Lavanda Real', color: '#9B7EDE' },
+      { name: 'Terracota', color: '#D46A6A' }
     ];
 
     const formatNoteDate = (timestamp) => {
@@ -396,10 +439,26 @@
       }
     };
 
-    const getSectionTheme = (progId, tab) => {
-      if (tab === 'viernes' || tab === 'sabado' || tab === 'domingo') return DAY_THEMES[tab];
-      if (progId === 'circuito_confia_2027') return tab === 'repaso' ? DAY_THEMES.repaso_cc : DAY_THEMES.programa_cc;
-      return tab === 'repaso' ? DAY_THEMES.repaso_ca : DAY_THEMES.programa_ca;
+    const getSectionTheme = (progObj, tab) => {
+      if (!progObj) return DAY_THEMES.viernes;
+      if (progObj.themeMap && progObj.themeMap[tab]) {
+        return progObj.themeMap[tab];
+      }
+      if (tab === 'viernes' || tab === 'sabado' || tab === 'domingo') {
+        const base = DAY_THEMES[tab];
+        return {
+          label: base.label,
+          color: (progObj.dayColors && progObj.dayColors[tab]) || progObj.themeColor || base.color,
+          quote: (progObj.quotes && progObj.quotes[tab]) || base.quote
+        };
+      }
+      if (progObj.id === 'circuito_confia_2027') return tab === 'repaso' ? DAY_THEMES.repaso_cc : DAY_THEMES.programa_cc;
+      if (progObj.id === 'circuito_alegria_2027') return tab === 'repaso' ? DAY_THEMES.repaso_ca : DAY_THEMES.programa_ca;
+      return {
+        label: tab === 'repaso' ? 'Preguntas de repaso' : 'Programa',
+        color: progObj.themeColor || '#D9822B',
+        quote: progObj.quote || progObj.title || ''
+      };
     };
 
     const PREFIX_PATTERNS = [
@@ -652,6 +711,244 @@
       }
     ];
 
+    const parseAssemblyPdfText = (pagesLines, fileName, chosenColor) => {
+      const allLines = pagesLines.flat().map(l => l.trim()).filter(Boolean);
+      const joinedText = allLines.join('\n');
+
+      const hasViernes = /\bViernes\b/i.test(joinedText);
+      const hasSabado = /\bS[áa]bado\b/i.test(joinedText);
+      const hasDomingo = /\bDomingo\b/i.test(joinedText);
+      const isThreeDays = hasViernes && hasSabado && hasDomingo;
+
+      let detectedTitle = '';
+      for (let i = 0; i < Math.min(allLines.length, 30); i++) {
+        const line = allLines[i];
+        const quoteMatch = line.match(/[“"]([^”"]{6,90})[”"]/);
+        if (quoteMatch && !/Mateo|Marcos|Lucas|Juan|Salmo|Proverbios|Hechos/i.test(line)) {
+          detectedTitle = `"${quoteMatch[1].trim()}"`;
+          break;
+        }
+      }
+      if (!detectedTitle) {
+        const cleanFile = (fileName || 'Programa de Asamblea').replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ').trim();
+        detectedTitle = cleanFile.startsWith('"') ? cleanFile : `"${cleanFile}"`;
+      }
+
+      const yearMatch = joinedText.match(/\b(202[4-9]|203[0-5])\b/);
+      const detectedYear = yearMatch ? yearMatch[1] : new Date().getFullYear().toString();
+
+      const buildSectionItems = (rawLines, prefix, isRegional) => {
+        const items = [];
+        let currentSession = null;
+        let currentSymposium = null;
+        let counter = 1;
+        let amAttendanceAdded = false;
+
+        const flushSymposium = () => {
+          if (currentSymposium) {
+            items.push(currentSymposium);
+            currentSymposium = null;
+          }
+        };
+
+        for (let i = 0; i < rawLines.length; i++) {
+          const line = rawLines[i].trim();
+          if (!line) continue;
+
+          if (/^Ma[ñn]ana$/i.test(line)) {
+            flushSymposium();
+            currentSession = 'am';
+            items.push({ id: `${prefix}_hdr_am`, title: 'Mañana', type: 'session_header' });
+            continue;
+          }
+
+          if (/^Tarde$/i.test(line)) {
+            flushSymposium();
+            if (currentSession === 'am' && !amAttendanceAdded) {
+              items.push({ id: `${prefix}_att_am`, title: 'Asistencia (Mañana)', type: 'attendance', hasStream: isRegional });
+              amAttendanceAdded = true;
+            }
+            currentSession = 'pm';
+            items.push({ id: `${prefix}_hdr_pm`, title: 'Tarde', type: 'session_header' });
+            continue;
+          }
+
+          const timeMatch = line.match(/^(\d{1,2}:\d{2})\s+(.*)$/);
+          if (timeMatch) {
+            flushSymposium();
+            if (!currentSession) {
+              currentSession = 'am';
+              items.push({ id: `${prefix}_hdr_am`, title: 'Mañana', type: 'session_header' });
+            }
+            const timeStr = timeMatch[1];
+            let restTitle = timeMatch[2].trim();
+
+            while (i + 1 < rawLines.length) {
+              const nextLine = rawLines[i + 1].trim();
+              if (
+                !nextLine ||
+                /^(\d{1,2}:\d{2})\s+/.test(nextLine) ||
+                /^[•·▪-]\s*/.test(nextLine) ||
+                /^(Ma[ñn]ana|Tarde|Viernes|S[áa]bado|Domingo|Preguntas de repaso)$/i.test(nextLine)
+              ) {
+                break;
+              }
+              restTitle += ' ' + nextLine;
+              i++;
+            }
+
+            const itemId = `${prefix}_${counter++}`;
+            const isMusic = /^(Video musical|M[úu]sica)$/i.test(restTitle);
+            const isSong = /^Canci[óo]n\s+\d+/i.test(restTitle);
+            const isSymposium = /SERIE DE DISCURSOS:/i.test(restTitle);
+
+            if (isSymposium) {
+              currentSymposium = {
+                id: itemId,
+                time: timeStr,
+                title: restTitle,
+                type: 'symposium',
+                parts: []
+              };
+            } else {
+              items.push({
+                id: itemId,
+                time: timeStr,
+                title: restTitle,
+                type: isMusic ? 'music' : isSong ? 'song' : 'talk'
+              });
+
+              if (/intermedio/i.test(restTitle) && !amAttendanceAdded) {
+                items.push({ id: `${prefix}_att_am`, title: 'Asistencia (Mañana)', type: 'attendance', hasStream: isRegional });
+                amAttendanceAdded = true;
+              }
+            }
+            continue;
+          }
+
+          const bulletMatch = line.match(/^[•·▪]\s*(.*)$/);
+          if (bulletMatch && currentSymposium) {
+            let partText = '• ' + bulletMatch[1].trim();
+            while (i + 1 < rawLines.length) {
+              const nextLine = rawLines[i + 1].trim();
+              if (
+                !nextLine ||
+                /^(\d{1,2}:\d{2})\s+/.test(nextLine) ||
+                /^[•·▪]\s*/.test(nextLine) ||
+                /^(Ma[ñn]ana|Tarde|Viernes|S[áa]bado|Domingo|Preguntas de repaso)$/i.test(nextLine)
+              ) {
+                break;
+              }
+              partText += ' ' + nextLine;
+              i++;
+            }
+            currentSymposium.parts.push({
+              id: `${currentSymposium.id}_p${currentSymposium.parts.length + 1}`,
+              title: partText
+            });
+            continue;
+          }
+        }
+
+        flushSymposium();
+
+        if (!amAttendanceAdded && items.some(it => it.id === `${prefix}_hdr_am`)) {
+          items.push({ id: `${prefix}_att_am`, title: 'Asistencia (Mañana)', type: 'attendance', hasStream: isRegional });
+        }
+        if (items.some(it => it.id === `${prefix}_hdr_pm`)) {
+          items.push({ id: `${prefix}_att_pm`, title: 'Asistencia (Tarde)', type: 'attendance', hasStream: isRegional });
+        } else if (items.length > 0 && !items.some(it => it.type === 'attendance')) {
+          items.push({ id: `${prefix}_att_pm`, title: 'Asistencia (Tarde)', type: 'attendance', hasStream: isRegional });
+        }
+
+        return items;
+      };
+
+      const progId = `custom_prog_${Date.now()}`;
+
+      if (isThreeDays) {
+        const idxV = allLines.findIndex(l => /^Viernes$/i.test(l));
+        const idxS = allLines.findIndex(l => /^S[áa]bado$/i.test(l));
+        const idxD = allLines.findIndex(l => /^Domingo$/i.test(l));
+
+        const sliceV = idxV !== -1 && idxS !== -1 ? allLines.slice(idxV + 1, idxS) : allLines;
+        const sliceS = idxS !== -1 && idxD !== -1 ? allLines.slice(idxS + 1, idxD) : [];
+        const sliceD = idxD !== -1 ? allLines.slice(idxD + 1) : [];
+
+        const extractQuote = (arr, fallback) => {
+          for (let i = 0; i < Math.min(arr.length, 4); i++) {
+            if (/^Ma[ñn]ana$/i.test(arr[i])) break;
+            if (arr[i].length > 10) return arr[i];
+          }
+          return fallback;
+        };
+
+        return {
+          id: progId,
+          title: detectedTitle,
+          year: `${detectedYear} (Importado)`,
+          days: 3,
+          isCustomProgram: true,
+          themeColor: chosenColor || '#E5854B',
+          dayColors: {
+            viernes: chosenColor || '#E5854B',
+            sabado: '#87B896',
+            domingo: '#6CA6CD'
+          },
+          quotes: {
+            viernes: extractQuote(sliceV, DAY_THEMES.viernes.quote),
+            sabado: extractQuote(sliceS, DAY_THEMES.sabado.quote),
+            domingo: extractQuote(sliceD, DAY_THEMES.domingo.quote)
+          },
+          viernes: buildSectionItems(sliceV, `${progId}_v`, true),
+          sabado: buildSectionItems(sliceS, `${progId}_s`, true),
+          domingo: buildSectionItems(sliceD, `${progId}_d`, true)
+        };
+      } else {
+        const idxRepaso = allLines.findIndex(l => /Preguntas de repaso/i.test(l));
+        const mainLines = idxRepaso !== -1 ? allLines.slice(0, idxRepaso) : allLines;
+        const repasoLines = idxRepaso !== -1 ? allLines.slice(idxRepaso + 1) : [];
+
+        const repasoItems = [];
+        let currentQuestion = null;
+        repasoLines.forEach(line => {
+          if (/^[1-9]\.\s+/.test(line)) {
+            if (currentQuestion) repasoItems.push(currentQuestion);
+            currentQuestion = {
+              id: `${progId}_rep_${repasoItems.length + 1}`,
+              title: line,
+              type: 'talk'
+            };
+          } else if (currentQuestion) {
+            currentQuestion.title += ' ' + line;
+          }
+        });
+        if (currentQuestion) repasoItems.push(currentQuestion);
+
+        let mainQuote = detectedTitle;
+        for (let i = 0; i < Math.min(mainLines.length, 8); i++) {
+          if (/\((Salmo|Sal\.|Proverbios|Prov\.|Mateo|Mat\.|Juan|1\s|2\s)/i.test(mainLines[i])) {
+            mainQuote = mainLines[i];
+            break;
+          }
+        }
+
+        return {
+          id: progId,
+          title: detectedTitle,
+          year: `${detectedYear} (Especial / Circuito)`,
+          days: 1,
+          isCustomProgram: true,
+          themeColor: chosenColor || '#D9822B',
+          quote: mainQuote,
+          programa: buildSectionItems(mainLines, `${progId}_p`, false),
+          repaso: repasoItems.length > 0 ? repasoItems : [
+            { id: `${progId}_rep_1`, title: '1. ¿Qué puntos destacados aprendimos en el programa de hoy?', type: 'talk' }
+          ]
+        };
+      }
+    };
+
     const RichNoteEditor = ({ id, value, onChange, placeholder, fontSize, isCustomNote = false, refreshTrigger = 0 }) => {
       const mountRef = useRef(null);
       const editorNodeRef = useRef(null);
@@ -888,7 +1185,7 @@
           }
 
           Object.keys(mergedNotes).forEach(noteId => {
-            if (noteId.startsWith('custom_') && !seenCustomIds[noteId]) {
+            if (noteId.startsWith('custom_') && !noteId.startsWith('custom_prog_') && !seenCustomIds[noteId]) {
               seenCustomIds[noteId] = true;
               const timestamp = parseInt(noteId.replace('custom_', ''), 10) || Date.now();
               mergedCustomList.push({
@@ -911,7 +1208,7 @@
       };
 
       const [currentUser] = useState(() => getOrCreateDeviceUser());
-      const [currentScreen, setCurrentScreen] = useState('programs');
+      const [currentScreen, setCurrentScreen] = useState('notes_home');
 
       const initialDataRef = useRef(null);
       if (!initialDataRef.current) {
@@ -919,6 +1216,7 @@
       }
 
       const [activeProgram, setActiveProgram] = useState(null);
+      const [previousScreen, setPreviousScreen] = useState('notes_home');
       const [activeTab, setActiveTab] = useState('');
       const [notes, setNotes] = useState(initialDataRef.current.notes);
       const notesRef = useRef(initialDataRef.current.notes);
@@ -956,6 +1254,30 @@
 
       const [customNotesList, setCustomNotesList] = useState(initialDataRef.current.customList);
 
+      const [foldersList, setFoldersList] = useState(() => {
+        try {
+          const u = currentUser?.username || 'default';
+          const saved = localStorage.getItem(`asamblea-folders-${u}`);
+          return saved ? JSON.parse(saved) : [];
+        } catch (e) { return []; }
+      });
+      const [selectedFolderId, setSelectedFolderId] = useState('all');
+      const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+      const [newFolderName, setNewFolderName] = useState('');
+      const [newFolderColor, setNewFolderColor] = useState(NOTE_COLORS[0]);
+      const [movingNoteObj, setMovingNoteObj] = useState(null);
+
+      const [customProgramsList, setCustomProgramsList] = useState(() => {
+        try {
+          const u = currentUser?.username || 'default';
+          const saved = localStorage.getItem(`asamblea-custom-programs-${u}`);
+          return saved ? JSON.parse(saved) : [];
+        } catch (e) { return []; }
+      });
+      const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+      const [pdfColorChoice, setPdfColorChoice] = useState('#E5854B');
+      const [isParsingPdf, setIsParsingPdf] = useState(false);
+
       const [isDrawerOpen, setIsDrawerOpen] = useState(false);
       const [openSwipeId, setOpenSwipeId] = useState(null);
       const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -967,35 +1289,36 @@
 
       const saveTimeoutRef = useRef(null);
       const fileInputRef = useRef(null);
+      const pdfInputRef = useRef(null);
       const waitingWorkerRef = useRef(null);
+
+      const allProgramsDB = [...customProgramsList, ...programsDB];
 
       useEffect(() => {
         let isMounted = true;
-        const canUseSw = isServiceWorkerSupported();
-        if (!canUseSw) return;
 
         const checkSwVersionFromFile = async () => {
+          if (!isServiceWorkerSupported()) return;
           try {
             const res = await fetch(`./sw.js?t=${Date.now()}`, { cache: 'no-store' });
             if (!res.ok) return;
-            const text = await res.text();
-            const match = text.match(/CACHE_NAME\s*=\s*['"]([^'"]+)['"]/);
-            if (match && match[1]) {
-              const remoteVersion = match[1];
-              const installedVersion = localStorage.getItem('asamblea-installed-sw-version');
-              if (!installedVersion) {
-                localStorage.setItem('asamblea-installed-sw-version', remoteVersion);
-              } else if (installedVersion !== remoteVersion) {
-                if (isMounted) {
-                  setDetectedVersion(remoteVersion);
-                  setUpdateAvailable(true);
-                }
+            const txt = await res.text();
+            const m = txt.match(/CACHE_NAME\s*=\s*['"]([^'"]+)['"]/);
+            if (m && m[1]) {
+              const serverVer = m[1];
+              const installedVer = localStorage.getItem('asamblea-installed-sw-version');
+              if (!installedVer) {
+                localStorage.setItem('asamblea-installed-sw-version', serverVer);
+              } else if (installedVer !== serverVer && isMounted) {
+                setDetectedVersion(serverVer);
+                setUpdateAvailable(true);
               }
             }
           } catch (e) {}
         };
 
         try {
+          if (!isServiceWorkerSupported()) return;
           Promise.resolve(navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }))
             .then(reg => {
               if (!reg) return;
@@ -1080,11 +1403,13 @@
         saveNotesNow(notesRef.current);
 
         const backupPayload = {
-          version: 1,
+          version: 2,
           exportedAt: Date.now(),
           username: currentUser?.username || 'dispositivo',
           notes: notesRef.current,
           customNotesList: customNotesList,
+          foldersList: foldersList,
+          customProgramsList: customProgramsList,
           archivedPrograms: archivedItems,
           deletedPrograms: deletedItems
         };
@@ -1135,7 +1460,7 @@
             }
 
             Object.keys(importedNotes).forEach((noteId, idx) => {
-              if (noteId.startsWith('custom_') && !existingMap[noteId]) {
+              if (noteId.startsWith('custom_') && !noteId.startsWith('custom_prog_') && !existingMap[noteId]) {
                 const timestamp = parseInt(noteId.replace('custom_', ''), 10) || Date.now();
                 existingMap[noteId] = {
                   id: noteId,
@@ -1148,6 +1473,20 @@
 
             const mergedList = Object.values(existingMap).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
+            const folderMap = {};
+            foldersList.forEach(f => { if (f && f.id) folderMap[f.id] = f; });
+            if (Array.isArray(data.foldersList)) {
+              data.foldersList.forEach(f => { if (f && f.id) folderMap[f.id] = f; });
+            }
+            const mergedFolders = Object.values(folderMap);
+
+            const customProgMap = {};
+            customProgramsList.forEach(p => { if (p && p.id) customProgMap[p.id] = p; });
+            if (Array.isArray(data.customProgramsList)) {
+              data.customProgramsList.forEach(p => { if (p && p.id) customProgMap[p.id] = p; });
+            }
+            const mergedCustomProgs = Object.values(customProgMap);
+
             const nextDeleted = { ...deletedItems };
             if (Array.isArray(data.customNotesList)) {
               data.customNotesList.forEach(item => {
@@ -1157,7 +1496,7 @@
             Object.keys(importedNotes).forEach(noteKey => {
               delete nextDeleted[noteKey];
             });
-            programsDB.forEach(prog => {
+            [...mergedCustomProgs, ...programsDB].forEach(prog => {
               if (!data.deletedPrograms || !data.deletedPrograms[prog.id]) {
                 delete nextDeleted[prog.id];
               }
@@ -1175,12 +1514,16 @@
             notesRef.current = mergedNotes;
             setNotes(mergedNotes);
             setCustomNotesList(mergedList);
+            setFoldersList(mergedFolders);
+            setCustomProgramsList(mergedCustomProgs);
             setDeletedItems(nextDeleted);
             setArchivedItems(nextArch);
             setImportVersion(v => v + 1);
 
             localStorage.setItem(`asamblea-notas-${u}`, JSON.stringify(mergedNotes));
             localStorage.setItem(`asamblea-custom-list-${u}`, JSON.stringify(mergedList));
+            localStorage.setItem(`asamblea-folders-${u}`, JSON.stringify(mergedFolders));
+            localStorage.setItem(`asamblea-custom-programs-${u}`, JSON.stringify(mergedCustomProgs));
             localStorage.setItem(`asamblea-deleted-${u}`, JSON.stringify(nextDeleted));
             localStorage.setItem(`asamblea-archived-${u}`, JSON.stringify(nextArch));
 
@@ -1191,6 +1534,109 @@
           }
         };
         reader.readAsText(file);
+        e.target.value = '';
+      };
+
+      const handleCreateFolder = (e) => {
+        e.preventDefault();
+        const trimmed = newFolderName.trim();
+        if (!trimmed) return;
+        const u = currentUser?.username || 'default';
+        const newFolder = {
+          id: `folder_${Date.now()}`,
+          name: trimmed,
+          color: newFolderColor,
+          createdAt: Date.now()
+        };
+        const updated = [...foldersList, newFolder];
+        setFoldersList(updated);
+        try { localStorage.setItem(`asamblea-folders-${u}`, JSON.stringify(updated)); } catch (err) {}
+        setNewFolderName('');
+        setIsFolderModalOpen(false);
+        setSelectedFolderId(newFolder.id);
+        showToast(`Carpeta "${trimmed}" creada`);
+      };
+
+      const handleDeleteFolder = (folderId) => {
+        const u = currentUser?.username || 'default';
+        const updatedFolders = foldersList.filter(f => f.id !== folderId);
+        setFoldersList(updatedFolders);
+        const updatedNotes = customNotesList.map(n => n.folderId === folderId ? { ...n, folderId: null } : n);
+        setCustomNotesList(updatedNotes);
+        if (selectedFolderId === folderId) setSelectedFolderId('all');
+        try {
+          localStorage.setItem(`asamblea-folders-${u}`, JSON.stringify(updatedFolders));
+          localStorage.setItem(`asamblea-custom-list-${u}`, JSON.stringify(updatedNotes));
+        } catch (err) {}
+        showToast('Carpeta eliminada (notas conservadas)');
+      };
+
+      const handleMoveNoteToFolder = (noteId, targetFolderId) => {
+        const u = currentUser?.username || 'default';
+        const updatedList = customNotesList.map(n =>
+          n.id === noteId ? { ...n, folderId: targetFolderId || null } : n
+        );
+        setCustomNotesList(updatedList);
+        try { localStorage.setItem(`asamblea-custom-list-${u}`, JSON.stringify(updatedList)); } catch (err) {}
+        setMovingNoteObj(null);
+        const folderName = foldersList.find(f => f.id === targetFolderId)?.name;
+        showToast(targetFolderId ? `Movida a "${folderName}"` : 'Quitada de la carpeta');
+      };
+
+      const handlePdfProgramUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!window.pdfjsLib) {
+          showToast('El lector de PDF aún está cargando, intenta de nuevo');
+          return;
+        }
+        setIsParsingPdf(true);
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          const pagesLines = [];
+
+          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            const rowsMap = {};
+
+            textContent.items.forEach(item => {
+              const str = item.str;
+              if (!str || !str.trim()) return;
+              const y = Math.round(item.transform[5] / 4) * 4;
+              if (!rowsMap[y]) rowsMap[y] = [];
+              rowsMap[y].push({ x: item.transform[4], text: str });
+            });
+
+            const sortedY = Object.keys(rowsMap).map(Number).sort((a, b) => b - a);
+            const lines = sortedY.map(y => {
+              const rowItems = rowsMap[y].sort((a, b) => a.x - b.x);
+              return rowItems.map(r => r.text).join(' ').replace(/\s+/g, ' ').trim();
+            });
+            pagesLines.push(lines);
+          }
+
+          const newProg = parseAssemblyPdfText(pagesLines, file.name, pdfColorChoice);
+          const u = currentUser?.username || 'default';
+          const nextCustomProgs = [newProg, ...customProgramsList];
+          setCustomProgramsList(nextCustomProgs);
+          try {
+            localStorage.setItem(`asamblea-custom-programs-${u}`, JSON.stringify(nextCustomProgs));
+          } catch (err) {}
+
+          setIsParsingPdf(false);
+          setIsPdfModalOpen(false);
+          setIsDrawerOpen(false);
+          setPreviousScreen('assemblies');
+          setActiveProgram(newProg.id);
+          setActiveTab(newProg.days === 3 ? 'viernes' : 'programa');
+          setCurrentScreen('program_view');
+          showToast('¡Programa de asamblea creado con éxito!');
+        } catch (err) {
+          setIsParsingPdf(false);
+          showToast('No se pudo procesar el PDF');
+        }
         e.target.value = '';
       };
 
@@ -1266,9 +1712,10 @@
       };
 
       const handleOpenProgram = (progId) => {
-        const prog = programsDB.find(p => p.id === progId);
+        const prog = allProgramsDB.find(p => p.id === progId);
         if (!prog) return;
         setOpenSwipeId(null);
+        setPreviousScreen(currentScreen);
         setActiveProgram(progId);
         setActiveTab(prog.days === 3 ? 'viernes' : 'programa');
         setCurrentScreen('program_view');
@@ -1280,13 +1727,21 @@
         const now = Date.now();
         const newId = `custom_${now}`;
         const nextColor = NOTE_COLORS[customNotesList.length % NOTE_COLORS.length];
-        const newNote = { id: newId, title: 'Nueva nota', createdAt: now, color: nextColor };
+        const assignedFolder = (selectedFolderId && selectedFolderId !== 'all') ? selectedFolderId : null;
+        const newNote = {
+          id: newId,
+          title: 'Nueva nota',
+          createdAt: now,
+          color: nextColor,
+          folderId: assignedFolder
+        };
         const updatedList = [newNote, ...customNotesList];
         setCustomNotesList(updatedList);
         try {
           localStorage.setItem(`asamblea-custom-list-${u}`, JSON.stringify(updatedList));
         } catch (e) {}
         setOpenSwipeId(null);
+        setPreviousScreen('notes_home');
         setActiveProgram(newId);
         setCurrentScreen('custom_note');
         window.scrollTo(0, 0);
@@ -1294,6 +1749,7 @@
 
       const handleOpenCustomNote = (noteId) => {
         setOpenSwipeId(null);
+        setPreviousScreen(currentScreen);
         setActiveProgram(noteId);
         setCurrentScreen('custom_note');
         window.scrollTo(0, 0);
@@ -1350,7 +1806,13 @@
           return newState;
         });
 
-        if (String(id).startsWith('custom_')) {
+        if (String(id).startsWith('custom_prog_')) {
+          setCustomProgramsList(prev => {
+            const nextProgs = prev.filter(p => p.id !== id);
+            try { localStorage.setItem(`asamblea-custom-programs-${u}`, JSON.stringify(nextProgs)); } catch (e) {}
+            return nextProgs;
+          });
+        } else if (String(id).startsWith('custom_')) {
           setCustomNotesList(prev => {
             const nextList = prev.filter(n => n.id !== id);
             try { localStorage.setItem(`asamblea-custom-list-${u}`, JSON.stringify(nextList)); } catch (e) {}
@@ -1360,7 +1822,7 @@
         showToast('Elemento eliminado');
       };
 
-      const handleBackToPrograms = () => {
+      const handleBackNavigation = () => {
         if (saveTimeoutRef.current) {
           clearTimeout(saveTimeoutRef.current);
         }
@@ -1368,7 +1830,13 @@
         setNotes({ ...notesRef.current });
         setIsSaving(false);
         setOpenSwipeId(null);
-        setCurrentScreen('programs');
+        if (currentScreen === 'program_view') {
+          setCurrentScreen(previousScreen === 'archive' ? 'archive' : 'assemblies');
+        } else if (currentScreen === 'custom_note') {
+          setCurrentScreen(previousScreen === 'archive' ? 'archive' : 'notes_home');
+        } else {
+          setCurrentScreen('notes_home');
+        }
         setActiveProgram(null);
         setActiveTab('');
       };
@@ -1388,7 +1856,7 @@
           html += `<h2 style="color: #000; border-bottom: 2px solid #E5E5EA; padding-bottom: 8px;">${noteObj?.title || 'Nota Libre'}</h2>`;
           html += `<div style="margin-top: 15px; font-size: 15px; line-height: 1.6;">${currentNotes[activeProgram] || 'Sin contenido.'}</div>`;
         } else {
-          const targetPrograms = activeProgram ? programsDB.filter(p => p.id === activeProgram) : programsDB;
+          const targetPrograms = activeProgram ? allProgramsDB.filter(p => p.id === activeProgram) : allProgramsDB;
           targetPrograms.forEach(prog => {
             html += `<h2 style="color: #007AFF; margin-top: 25px; border-bottom: 2px solid #E5E5EA; padding-bottom: 6px;">${prog.title} (${prog.year})</h2>`;
             const sections = prog.days === 3 ? ['viernes', 'sabado', 'domingo'] : ['programa', 'repaso'];
@@ -1439,9 +1907,12 @@
         }
       };
 
-      const activeProgramsList = programsDB.filter(p => !archivedItems[p.id] && !deletedItems[p.id]);
+      const activeProgramsList = allProgramsDB.filter(p => !archivedItems[p.id] && !deletedItems[p.id]);
       const activeCustomNotes = customNotesList.filter(n => !archivedItems[n.id] && !deletedItems[n.id]);
-      const archivedProgramsList = programsDB.filter(p => archivedItems[p.id] && !deletedItems[p.id]);
+      const filteredCustomNotes = selectedFolderId === 'all'
+        ? activeCustomNotes
+        : activeCustomNotes.filter(n => n.folderId === selectedFolderId);
+      const archivedProgramsList = allProgramsDB.filter(p => archivedItems[p.id] && !deletedItems[p.id]);
       const archivedCustomNotes = customNotesList.filter(n => archivedItems[n.id] && !deletedItems[n.id]);
       const totalArchivedCount = archivedProgramsList.length + archivedCustomNotes.length;
 
@@ -1465,6 +1936,13 @@
             type="file"
             accept=".json,application/json"
             onChange={handleImportBackup}
+            className="hidden"
+          />
+          <input
+            ref={pdfInputRef}
+            type="file"
+            accept=".pdf,application/pdf"
+            onChange={handlePdfProgramUpload}
             className="hidden"
           />
 
@@ -1509,12 +1987,171 @@
               </div>
             </div>
           )}
+
+          {isFolderModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/50 backdrop-blur-sm animate-fade-in">
+              <form onSubmit={handleCreateFolder} className="bg-white dark:bg-[#1C1C1E] w-full max-w-[320px] rounded-[20px] overflow-hidden shadow-2xl border border-[#C6C6C8]/40 dark:border-[#38383A]">
+                <div className="p-5">
+                  <h3 className="text-[18px] font-bold text-center text-black dark:text-white mb-1">Nueva Carpeta</h3>
+                  <p className="text-[13px] text-[#8E8E93] text-center mb-4">Organiza tus notas personales</p>
+                  <input
+                    type="text"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    placeholder="Nombre de la carpeta..."
+                    autoFocus
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#F2F2F7] dark:bg-[#2C2C2E] text-black dark:text-white text-[16px] focus:outline-none mb-4"
+                  />
+                  <div className="flex items-center justify-center gap-2.5 mb-2">
+                    {NOTE_COLORS.slice(0, 6).map(col => (
+                      <button
+                        key={col}
+                        type="button"
+                        onClick={() => setNewFolderColor(col)}
+                        style={{ backgroundColor: col }}
+                        className={`w-7 h-7 rounded-full transition-transform ${newFolderColor === col ? 'scale-125 ring-2 ring-offset-2 ring-[#007AFF] dark:ring-offset-[#1C1C1E]' : 'opacity-75'}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="border-t border-[#C6C6C8]/50 dark:border-[#38383A] flex divide-x divide-[#C6C6C8]/50 dark:divide-[#38383A]">
+                  <button
+                    type="button"
+                    onClick={() => { setIsFolderModalOpen(false); setNewFolderName(''); }}
+                    className="flex-1 py-3.5 text-[16px] font-medium text-[#8E8E93]"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-3.5 text-[16px] font-bold text-[#007AFF]"
+                  >
+                    Crear
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {movingNoteObj && (
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+              <div className="bg-white dark:bg-[#1C1C1E] w-full max-w-sm rounded-[22px] overflow-hidden shadow-2xl border border-[#C6C6C8]/40 dark:border-[#38383A] animate-slide-up">
+                <div className="p-4 border-b border-[#C6C6C8]/40 dark:border-[#38383A] text-center">
+                  <h3 className="text-[17px] font-bold text-black dark:text-white">Mover a carpeta</h3>
+                  <p className="text-[13px] text-[#8E8E93] truncate px-4">{movingNoteObj.title || 'Sin título'}</p>
+                </div>
+                <div className="p-3 max-h-64 overflow-y-auto space-y-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleMoveNoteToFolder(movingNoteObj.id, null)}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl text-left text-[15px] font-medium transition-colors ${!movingNoteObj.folderId ? 'bg-[#007AFF]/12 text-[#007AFF]' : 'text-black dark:text-white active:bg-[#F2F2F7] dark:active:bg-[#2C2C2E]'}`}
+                  >
+                    <span>Todas las notas (Sin carpeta)</span>
+                    {!movingNoteObj.folderId && <span className="font-bold">✓</span>}
+                  </button>
+                  {foldersList.map(folder => (
+                    <button
+                      key={folder.id}
+                      type="button"
+                      onClick={() => handleMoveNoteToFolder(movingNoteObj.id, folder.id)}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl text-left text-[15px] font-medium transition-colors ${movingNoteObj.folderId === folder.id ? 'bg-[#007AFF]/12 text-[#007AFF]' : 'text-black dark:text-white active:bg-[#F2F2F7] dark:active:bg-[#2C2C2E]'}`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: folder.color || '#007AFF' }} />
+                        <span>{folder.name}</span>
+                      </div>
+                      {movingNoteObj.folderId === folder.id && <span className="font-bold">✓</span>}
+                    </button>
+                  ))}
+                  {foldersList.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => { setMovingNoteObj(null); setIsFolderModalOpen(true); }}
+                      className="w-full py-3 text-center text-[#007AFF] text-[14px] font-semibold"
+                    >
+                      + Crear mi primera carpeta
+                    </button>
+                  )}
+                </div>
+                <div className="p-3 border-t border-[#C6C6C8]/40 dark:border-[#38383A]">
+                  <button
+                    type="button"
+                    onClick={() => setMovingNoteObj(null)}
+                    className="w-full py-3 rounded-xl bg-[#F2F2F7] dark:bg-[#2C2C2E] text-[#007AFF] font-semibold text-[16px]"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isPdfModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/50 backdrop-blur-sm animate-fade-in">
+              <div className="bg-white dark:bg-[#1C1C1E] w-full max-w-[350px] rounded-[22px] overflow-hidden shadow-2xl border border-[#C6C6C8]/40 dark:border-[#38383A]">
+                <div className="p-5">
+                  <div className="w-12 h-12 rounded-full bg-[#E5854B]/15 text-[#E5854B] flex items-center justify-center mx-auto mb-3">
+                    <FileTextIcon size={24} />
+                  </div>
+                  <h3 className="text-[18px] font-bold text-center text-black dark:text-white mb-1">
+                    Crear apuntes de Programa
+                  </h3>
+                  <p className="text-[13px] text-[#8E8E93] text-center leading-snug mb-4">
+                    Selecciona el archivo PDF oficial de la asamblea. Se detectarán discursos, series, canciones y asistencias al final de cada sesión.
+                  </p>
+                  <p className="text-[12px] font-semibold uppercase tracking-wider text-[#8E8E93] mb-2 text-center">
+                    Color principal del programa
+                  </p>
+                  <div className="flex items-center justify-center gap-3 mb-4">
+                    {PROGRAM_PALETTES.map(pal => (
+                      <button
+                        key={pal.color}
+                        type="button"
+                        onClick={() => setPdfColorChoice(pal.color)}
+                        style={{ backgroundColor: pal.color }}
+                        className={`w-8 h-8 rounded-full transition-transform ${pdfColorChoice === pal.color ? 'scale-125 ring-2 ring-offset-2 ring-[#007AFF] dark:ring-offset-[#1C1C1E]' : 'opacity-75'}`}
+                        title={pal.name}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isParsingPdf}
+                    onClick={() => pdfInputRef.current?.click()}
+                    className="w-full py-3.5 rounded-xl bg-[#007AFF] active:bg-[#0062CC] text-white font-semibold text-[16px] flex items-center justify-center gap-2 shadow-sm transition-colors"
+                  >
+                    {isParsingPdf ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        <span>Procesando PDF...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={18} />
+                        <span>Seleccionar PDF de Asamblea</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="border-t border-[#C6C6C8]/50 dark:border-[#38383A]">
+                  <button
+                    type="button"
+                    disabled={isParsingPdf}
+                    onClick={() => setIsPdfModalOpen(false)}
+                    className="w-full py-3.5 text-[16px] font-medium text-[#8E8E93]"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           
           <header className="sticky top-0 z-40 bg-[#F2F2F7]/85 dark:bg-[#000000]/85 backdrop-blur-md border-b border-[#C6C6C8]/60 dark:border-[#38383A]">
             <div className="flex items-center justify-between px-2 h-12 max-w-2xl mx-auto">
-              <div className="w-24 flex items-center justify-start">
-                {(currentScreen === 'program_view' || currentScreen === 'custom_note' || currentScreen === 'archive') ? (
-                  <button onClick={handleBackToPrograms} className="flex items-center text-[#007AFF] font-medium text-[17px] px-2 active:opacity-50">
+              <div className="w-28 flex items-center justify-start">
+                {(currentScreen === 'program_view' || currentScreen === 'custom_note' || currentScreen === 'archive' || currentScreen === 'assemblies') ? (
+                  <button onClick={handleBackNavigation} className="flex items-center text-[#007AFF] font-medium text-[17px] px-2 active:opacity-50">
                     <ChevronLeft size={24} className="-ml-1" />
                     <span>Atrás</span>
                   </button>
@@ -1534,8 +2171,17 @@
                 )}
               </div>
 
-              <div className="w-24 flex justify-end">
-                {(currentScreen === 'program_view' || currentScreen === 'custom_note' || currentScreen === 'archive') && (
+              <div className="w-28 flex justify-end items-center gap-1">
+                {currentScreen === 'notes_home' && (
+                  <button
+                    onClick={() => { setOpenSwipeId(null); setCurrentScreen('assemblies'); }}
+                    className="flex items-center gap-1 text-[14px] font-semibold text-[#007AFF] bg-[#007AFF]/10 px-3 py-1.5 rounded-full active:bg-[#007AFF]/20 transition-colors"
+                  >
+                    <CalendarBookIcon size={15} />
+                    <span>Asambleas</span>
+                  </button>
+                )}
+                {(currentScreen === 'program_view' || currentScreen === 'custom_note' || currentScreen === 'archive' || currentScreen === 'assemblies') && (
                   <button onClick={() => setIsDrawerOpen(true)} className="p-2 text-[#007AFF] active:opacity-50" aria-label="Menú">
                     <Menu size={24} />
                   </button>
@@ -1546,16 +2192,182 @@
 
           <main className="max-w-2xl mx-auto px-4 mt-6">
             
-            {currentScreen === 'programs' && (
+            {currentScreen === 'notes_home' && (
               <div className="animate-fade-in">
                 <div className="flex justify-between items-center mb-4 px-2">
-                  <h1 className="text-[34px] font-bold tracking-tight">Programas</h1>
-                  <button onClick={createNewCustomNote} className="p-2 bg-[#007AFF]/10 text-[#007AFF] rounded-full active:bg-[#007AFF]/20 transition-colors" aria-label="Nueva nota libre">
-                    <Plus size={24} />
+                  <h1 className="text-[34px] font-bold tracking-tight">Mis apuntes</h1>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIsFolderModalOpen(true)}
+                      className="p-2 bg-[#5856D6]/12 text-[#5856D6] dark:text-[#7D7AFF] rounded-full active:bg-[#5856D6]/25 transition-colors"
+                      aria-label="Nueva carpeta"
+                      title="Nueva carpeta"
+                    >
+                      <FolderPlusIcon size={22} />
+                    </button>
+                    <button
+                      onClick={createNewCustomNote}
+                      className="p-2 bg-[#007AFF]/12 text-[#007AFF] rounded-full active:bg-[#007AFF]/25 transition-colors"
+                      aria-label="Nueva nota libre"
+                      title="Nueva nota"
+                    >
+                      <Plus size={24} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 px-1 no-scrollbar">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFolderId('all')}
+                    className={`px-3.5 py-1.5 rounded-full text-[14px] font-semibold shrink-0 transition-all ${
+                      selectedFolderId === 'all'
+                        ? 'bg-[#007AFF] text-white shadow-sm'
+                        : 'bg-white dark:bg-[#1C1C1E] text-[#8E8E93] border border-[#C6C6C8]/40 dark:border-[#38383A]'
+                    }`}
+                  >
+                    Todas ({activeCustomNotes.length})
+                  </button>
+                  {foldersList.map(folder => {
+                    const count = activeCustomNotes.filter(n => n.folderId === folder.id).length;
+                    const isSelected = selectedFolderId === folder.id;
+                    return (
+                      <div key={folder.id} className="flex items-center shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFolderId(folder.id)}
+                          style={isSelected ? { backgroundColor: folder.color || '#007AFF' } : {}}
+                          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[14px] font-semibold transition-all ${
+                            isSelected
+                              ? 'text-white shadow-sm'
+                              : 'bg-white dark:bg-[#1C1C1E] text-black dark:text-white border border-[#C6C6C8]/40 dark:border-[#38383A]'
+                          }`}
+                        >
+                          <span
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{ backgroundColor: isSelected ? '#FFFFFF' : (folder.color || '#007AFF') }}
+                          />
+                          <span>{folder.name}</span>
+                          <span className={`text-[12px] ${isSelected ? 'text-white/80' : 'text-[#8E8E93]'}`}>({count})</span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setIsFolderModalOpen(true)}
+                    className="px-3 py-1.5 rounded-full text-[13px] font-semibold text-[#007AFF] bg-[#007AFF]/10 shrink-0 active:opacity-70"
+                  >
+                    + Carpeta
                   </button>
                 </div>
-                
-                <div className="space-y-3.5">
+
+                {selectedFolderId !== 'all' && (
+                  <div className="flex justify-between items-center px-2 mb-3">
+                    <span className="text-[13px] text-[#8E8E93] font-medium">
+                      Carpeta: <strong className="text-black dark:text-white">{foldersList.find(f => f.id === selectedFolderId)?.name}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteFolder(selectedFolderId)}
+                      className="text-[13px] text-[#FF3B30] font-semibold"
+                    >
+                      Eliminar carpeta
+                    </button>
+                  </div>
+                )}
+
+                {filteredCustomNotes.length === 0 ? (
+                  <div className="bg-white dark:bg-[#1C1C1E] rounded-[18px] p-10 text-center shadow-sm mt-2 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={createNewCustomNote}
+                      className="px-6 py-3 rounded-full bg-[#007AFF] text-white font-semibold text-[16px] shadow-sm active:bg-[#0062CC] flex items-center justify-center gap-2 transition-colors"
+                    >
+                      <Plus size={20} />
+                      <span>Nuevo Apunte</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3.5">
+                    {filteredCustomNotes.map((note, idx) => {
+                      const borderColor = note.color || NOTE_COLORS[idx % NOTE_COLORS.length];
+                      const createdDate = formatNoteDate(note.createdAt || parseInt(String(note.id).replace('custom_', ''), 10));
+                      const folderObj = foldersList.find(f => f.id === note.folderId);
+                      return (
+                        <SwipeableItem
+                          key={note.id}
+                          itemId={note.id}
+                          openSwipeId={openSwipeId}
+                          setOpenSwipeId={setOpenSwipeId}
+                          isArchived={false}
+                          onArchive={() => toggleArchiveItem(note.id)}
+                          onDelete={() => deleteItem(note.id)}
+                          onClick={() => handleOpenCustomNote(note.id)}
+                        >
+                          <div 
+                            style={{ borderLeftColor: borderColor }}
+                            className="bg-white dark:bg-[#1C1C1E] rounded-[16px] p-5 shadow-sm border-l-[5px]"
+                          >
+                            <div className="flex justify-between items-baseline gap-2 mb-1.5">
+                              <h3 className="text-[19px] font-semibold tracking-tight text-black dark:text-white leading-snug truncate">
+                                {note.title || 'Sin título'}
+                              </h3>
+                              {createdDate && (
+                                <span className="text-[12px] text-[#8E8E93] font-medium shrink-0">{createdDate}</span>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[#8E8E93] text-[14px]">Nota libre</span>
+                                {folderObj && (
+                                  <span
+                                    style={{ backgroundColor: `${folderObj.color || '#007AFF'}20`, color: folderObj.color || '#007AFF' }}
+                                    className="text-[12px] font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1"
+                                  >
+                                    <FolderIcon size={12} />
+                                    {folderObj.name}
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setMovingNoteObj(note);
+                                }}
+                                className="text-[12px] font-semibold text-[#007AFF] bg-[#007AFF]/10 px-2.5 py-1 rounded-full active:bg-[#007AFF]/20 flex items-center gap-1"
+                              >
+                                <FolderIcon size={13} />
+                                <span>{folderObj ? 'Cambiar carpeta' : 'Mover a carpeta'}</span>
+                              </button>
+                            </div>
+                          </div>
+                        </SwipeableItem>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {currentScreen === 'assemblies' && (
+              <div className="animate-fade-in">
+                <div className="flex justify-between items-center mb-2 px-2">
+                  <div>
+                    <h1 className="text-[34px] font-bold tracking-tight leading-tight">Asambleas</h1>
+                    <p className="text-[#8E8E93] text-[15px]">Programas de asamblea y apuntes</p>
+                  </div>
+                  <button
+                    onClick={() => setIsPdfModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-[#E5854B]/15 text-[#E5854B] rounded-full font-semibold text-[14px] active:bg-[#E5854B]/25 transition-colors"
+                  >
+                    <Plus size={18} />
+                    <span>Desde PDF</span>
+                  </button>
+                </div>
+
+                <div className="mt-5 space-y-3.5">
                   {activeProgramsList.map(prog => (
                     <SwipeableItem
                       key={prog.id}
@@ -1567,50 +2379,16 @@
                       onDelete={() => deleteItem(prog.id)}
                       onClick={() => handleOpenProgram(prog.id)}
                     >
-                      <div className="bg-white dark:bg-[#1C1C1E] rounded-[16px] p-5 shadow-sm">
+                      <div
+                        style={prog.themeColor ? { borderLeftColor: prog.themeColor } : {}}
+                        className={`bg-white dark:bg-[#1C1C1E] rounded-[16px] p-5 shadow-sm ${prog.themeColor ? 'border-l-[5px]' : ''}`}
+                      >
                         <h3 className="text-[19px] font-semibold tracking-tight text-black dark:text-white leading-snug mb-1">{prog.title}</h3>
                         <p className="text-[#8E8E93] text-[15px]">{prog.year} • {prog.days === 1 ? '1 día' : '3 días'}</p>
                       </div>
                     </SwipeableItem>
                   ))}
                 </div>
-
-                {activeCustomNotes.length > 0 && (
-                  <div className="mt-8">
-                    <h2 className="text-[22px] font-bold tracking-tight mb-3.5 px-2 text-black dark:text-white">Mis Notas</h2>
-                    <div className="space-y-3.5">
-                      {activeCustomNotes.map((note, idx) => {
-                        const borderColor = note.color || NOTE_COLORS[idx % NOTE_COLORS.length];
-                        const createdDate = formatNoteDate(note.createdAt || parseInt(String(note.id).replace('custom_', ''), 10));
-                        return (
-                          <SwipeableItem
-                            key={note.id}
-                            itemId={note.id}
-                            openSwipeId={openSwipeId}
-                            setOpenSwipeId={setOpenSwipeId}
-                            isArchived={false}
-                            onArchive={() => toggleArchiveItem(note.id)}
-                            onDelete={() => deleteItem(note.id)}
-                            onClick={() => handleOpenCustomNote(note.id)}
-                          >
-                            <div 
-                              style={{ borderLeftColor: borderColor }}
-                              className="bg-white dark:bg-[#1C1C1E] rounded-[16px] p-5 shadow-sm border-l-[5px]"
-                            >
-                              <div className="flex justify-between items-baseline gap-2 mb-1">
-                                <h3 className="text-[19px] font-semibold tracking-tight text-black dark:text-white leading-snug truncate">{note.title || 'Sin título'}</h3>
-                                {createdDate && (
-                                  <span className="text-[12px] text-[#8E8E93] font-medium shrink-0">{createdDate}</span>
-                                )}
-                              </div>
-                              <p className="text-[#8E8E93] text-[14px]">Nota libre</p>
-                            </div>
-                          </SwipeableItem>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -1698,8 +2476,8 @@
             )}
 
             {currentScreen === 'program_view' && activeProgram && (() => {
-              const currentProg = programsDB.find(p => p.id === activeProgram);
-              const theme = getSectionTheme(activeProgram, activeTab);
+              const currentProg = allProgramsDB.find(p => p.id === activeProgram);
+              const theme = getSectionTheme(currentProg, activeTab);
               const accentColor = theme.color;
 
               return (
@@ -1831,9 +2609,10 @@
                                 : <ChevronDown size={20} className="text-[#8E8E93] shrink-0 mt-1" />
                             )}
                           </div>
-                          
+
+                          {}
                           {item.type === 'talk' && expandedItems[item.id] && (
-                            <div className="mt-3 mb-2">
+                            <div className="mt-2.5">
                               <RichNoteEditor
                                 id={item.id}
                                 value={notesRef.current[item.id] || ''}
@@ -1844,25 +2623,25 @@
                               />
                             </div>
                           )}
-                          
-                          {item.type === 'symposium' && (
-                            <div className="mt-3 pl-5 space-y-3">
+
+                          {item.type === 'symposium' && item.parts && (
+                            <div className="mt-2.5 pl-4 space-y-3">
                               {item.parts.map((part) => (
                                 <div key={part.id} className="py-0.5">
-                                  <div 
-                                    onClick={() => toggleItem(part.id)} 
+                                  <div
+                                    onClick={() => toggleItem(part.id)}
                                     className="flex items-start justify-between gap-3 cursor-pointer select-none active:opacity-70 transition-opacity"
                                   >
-                                    <div className="text-[18px] font-normal text-black dark:text-white leading-snug flex-1">
+                                    <div className="text-[17px] leading-snug text-black dark:text-white flex-1">
                                       {part.title}
                                     </div>
-                                    {expandedItems[part.id] 
-                                      ? <ChevronUp size={18} className="text-[#8E8E93] shrink-0 mt-1" /> 
+                                    {expandedItems[part.id]
+                                      ? <ChevronUp size={18} className="text-[#8E8E93] shrink-0 mt-1" />
                                       : <ChevronDown size={18} className="text-[#8E8E93] shrink-0 mt-1" />
                                     }
                                   </div>
                                   {expandedItems[part.id] && (
-                                    <div className="mt-2.5 mb-2">
+                                    <div className="mt-2">
                                       <RichNoteEditor
                                         id={part.id}
                                         value={notesRef.current[part.id] || ''}
@@ -1885,29 +2664,43 @@
               );
             })()}
 
-            {currentScreen === 'custom_note' && activeProgram && (
-              <div className="animate-fade-in">
-                <input 
-                  type="text" 
-                  value={customNotesList.find(n => n.id === activeProgram)?.title || ''}
-                  onChange={handleUpdateCustomNoteTitle}
-                  className="w-full text-[32px] font-bold tracking-tight mb-0.5 px-1 text-black dark:text-white bg-transparent focus:outline-none placeholder-[#8E8E93]"
-                  placeholder="Título de la nota..."
-                />
-                <p className="text-[12px] text-[#8E8E93] px-1.5 mb-2 font-medium">
-                  Creada el {formatNoteDate(customNotesList.find(n => n.id === activeProgram)?.createdAt || parseInt(String(activeProgram).replace('custom_', ''), 10))}
-                </p>
-                <RichNoteEditor 
-                  id={activeProgram} 
-                  value={notesRef.current[activeProgram] || ''} 
-                  onChange={(val) => handleNoteChange(activeProgram, val)} 
-                  placeholder="Empieza a escribir tu nota..." 
-                  fontSize={fontSize}
-                  isCustomNote={true}
-                  refreshTrigger={importVersion}
-                />
-              </div>
-            )}
+            {currentScreen === 'custom_note' && activeProgram && (() => {
+              const currentNoteObj = customNotesList.find(n => n.id === activeProgram);
+              const currentFolderObj = foldersList.find(f => f.id === currentNoteObj?.folderId);
+              return (
+                <div className="animate-fade-in">
+                  <input 
+                    type="text" 
+                    value={currentNoteObj?.title || ''}
+                    onChange={handleUpdateCustomNoteTitle}
+                    className="w-full text-[32px] font-bold tracking-tight mb-1 px-1 text-black dark:text-white bg-transparent focus:outline-none placeholder-[#8E8E93]"
+                    placeholder="Título de la nota..."
+                  />
+                  <div className="flex items-center justify-between px-1.5 mb-2">
+                    <p className="text-[12px] text-[#8E8E93] font-medium">
+                      Creada el {formatNoteDate(currentNoteObj?.createdAt || parseInt(String(activeProgram).replace('custom_', ''), 10))}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => currentNoteObj && setMovingNoteObj(currentNoteObj)}
+                      className="flex items-center gap-1.5 text-[12px] font-semibold text-[#007AFF] bg-[#007AFF]/10 px-3 py-1 rounded-full active:bg-[#007AFF]/20"
+                    >
+                      <FolderIcon size={13} />
+                      <span>{currentFolderObj ? `Carpeta: ${currentFolderObj.name}` : 'Mover a carpeta'}</span>
+                    </button>
+                  </div>
+                  <RichNoteEditor 
+                    id={activeProgram} 
+                    value={notesRef.current[activeProgram] || ''} 
+                    onChange={(val) => handleNoteChange(activeProgram, val)} 
+                    placeholder="Empieza a escribir tu nota..." 
+                    fontSize={fontSize}
+                    isCustomNote={true}
+                    refreshTrigger={importVersion}
+                  />
+                </div>
+              );
+            })()}
           </main>
 
           {isDrawerOpen && (
@@ -1926,17 +2719,59 @@
                   <div>
                     <h4 className="text-[#8E8E93] text-[13px] uppercase tracking-wider font-semibold mb-2 px-2">Navegación</h4>
                     <div className="bg-white dark:bg-[#2C2C2E] rounded-xl overflow-hidden divide-y divide-[#C6C6C8]/30 dark:divide-[#38383A]">
-                      {currentScreen !== 'programs' && (
-                        <button
-                          onClick={() => {
-                            setIsDrawerOpen(false);
-                            handleBackToPrograms();
-                          }}
-                          className="w-full flex items-center justify-between p-3.5 text-left text-[16px] font-medium text-[#007AFF] active:bg-[#E5E5EA] dark:active:bg-[#3A3A3C] transition-colors"
-                        >
-                          <span>Ir a Programas</span>
-                        </button>
-                      )}
+                      <button
+                        onClick={() => {
+                          setIsDrawerOpen(false);
+                          setOpenSwipeId(null);
+                          setCurrentScreen('notes_home');
+                        }}
+                        className="w-full flex items-center justify-between p-3.5 text-left text-[16px] font-medium text-black dark:text-white active:bg-[#E5E5EA] dark:active:bg-[#3A3A3C] transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-[#007AFF] text-white flex items-center justify-center">
+                            <FolderIcon size={18} />
+                          </div>
+                          <span>Mis apuntes</span>
+                        </div>
+                        <span className="text-[14px] font-semibold text-[#8E8E93] bg-[#F2F2F7] dark:bg-[#3A3A3C] px-2.5 py-0.5 rounded-full">
+                          {activeCustomNotes.length}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsDrawerOpen(false);
+                          setOpenSwipeId(null);
+                          setCurrentScreen('assemblies');
+                        }}
+                        className="w-full flex items-center justify-between p-3.5 text-left text-[16px] font-medium text-black dark:text-white active:bg-[#E5E5EA] dark:active:bg-[#3A3A3C] transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-[#FF9500] text-white flex items-center justify-center">
+                            <CalendarBookIcon size={18} />
+                          </div>
+                          <span>Asambleas</span>
+                        </div>
+                        <span className="text-[14px] font-semibold text-[#8E8E93] bg-[#F2F2F7] dark:bg-[#3A3A3C] px-2.5 py-0.5 rounded-full">
+                          {activeProgramsList.length}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsDrawerOpen(false);
+                          setIsPdfModalOpen(true);
+                        }}
+                        className="w-full flex items-center justify-between p-3.5 text-left text-[15px] font-semibold text-[#E5854B] active:bg-[#E5E5EA] dark:active:bg-[#3A3A3C] transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-[#E5854B]/15 text-[#E5854B] flex items-center justify-center">
+                            <FileTextIcon size={18} />
+                          </div>
+                          <span>Crear apuntes de Programa de Asamblea</span>
+                        </div>
+                      </button>
+
                       <button
                         onClick={() => {
                           setIsDrawerOpen(false);
