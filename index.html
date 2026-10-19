@@ -119,9 +119,9 @@
       from { transform: translateX(-100%); }
       to { transform: translateX(0); }
     }
-    .animate-fade-in { animation: fadeIn 0.22s ease-out; }
-    .animate-slide-up { animation: slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
-    .animate-slide-right { animation: slideRight 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
+    .animate-fade-in { animation: fadeIn 0.25s ease-out; }
+    .animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    .animate-slide-right { animation: slideRight 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
     
     [contenteditable][data-placeholder]:empty:before {
       content: attr(data-placeholder);
@@ -692,6 +692,73 @@
       return null;
     };
 
+    const normalizeSpanishPdfText = (input) => {
+      if (!input) return '';
+      let s = input
+        .replace(/\u0131/g, 'i')
+        .replace(/[\u2018\u2019\u02BC]/g, "'")
+        .replace(/\u00AD/g, '');
+
+      s = s.normalize('NFC');
+
+      const acuteMap = { a: 'á', e: 'é', i: 'í', o: 'ó', u: 'ú', A: 'Á', E: 'É', I: 'Í', O: 'Ó', U: 'Ú' };
+      const tildeMap = { n: 'ñ', N: 'Ñ', a: 'ã', o: 'õ' };
+      const umlautMap = { u: 'ü', U: 'Ü' };
+
+      s = s.replace(/([aeiouAEIOU])\s*[\u00B4\u02CA\u0301']\s*(?=[a-zA-Z]|$|\s|[.,;:!?)”"»])/g, (_, v) => acuteMap[v] || v);
+      s = s.replace(/[\u00B4\u02CA\u0301']\s*([aeiouAEIOU])/g, (_, v) => acuteMap[v] || v);
+
+      s = s.replace(/([a-zA-Z])\s+([áéíóúÁÉÍÓÚ])\s+([nNsS]\b)/g, '$1$2$3');
+      s = s.replace(/([a-zA-Z])\s+([áéíóúÁÉÍÓÚ])([a-zA-Z])/g, '$1$2$3');
+
+      s = s.replace(/([nN])\s*[\u02DC\u0303~]\s*([a-zA-ZáéíóúÁÉÍÓÚ])/g, (_, n, next) => (tildeMap[n] || n) + next);
+      s = s.replace(/[\u02DC\u0303~]\s*(?:[\u00B4\u02CA\u0301']\s*)?([nN])/g, (_, n) => tildeMap[n] || n);
+      s = s.replace(/([a-zA-Z])\s*[\u02DC\u0303~]\s*(?:[\u00B4\u02CA\u0301']\s*)?(del\s+)?([Ss]e)\s*nor/g, '$1 $2$3ñor');
+      s = s.replace(/\b([Ss]e)\s*nor\b/g, '$1ñor');
+      s = s.replace(/\b([Mm]a)\s*nana\b/g, '$1ñana');
+      s = s.replace(/\bMA\s*NANA\b/g, 'MAÑANA');
+      s = s.replace(/\b([Cc]anci)\s*on\b/g, '$1ón');
+      s = s.replace(/\b([Oo]raci)\s*on\b/g, '$1ón');
+      s = s.replace(/\b([Cc]omparaci)\s*on\b/g, '$1ón');
+      s = s.replace(/\b([Cc]onclusi)\s*on\b/g, '$1ón');
+      s = s.replace(/\b([Cc]reaci)\s*on\b/g, '$1ón');
+      s = s.replace(/\b([Ss]atisfacci)\s*on\b/g, '$1ón');
+      s = s.replace(/\b([Pp]roducci)\s*on\b/g, '$1ón');
+      s = s.replace(/\bPRODUCCI\s*ON\b/g, 'PRODUCCIÓN');
+      s = s.replace(/\b([Aa]legr)\s*[ií]\s*a\b/g, '$1ía');
+      s = s.replace(/\b([Ii]sa)\s*[ií]\s*as\b/g, '$1ías');
+      s = s.replace(/\b([Mm]es)\s*[ií]\s*as\b/g, '$1ías');
+      s = s.replace(/\b([Pp]rofec)\s*[ií]\s*as\b/g, '$1ías');
+      s = s.replace(/\b([Ss]abidur)\s*[ií]\s*a\b/g, '$1ía');
+      s = s.replace(/\b([Ee]clesiaste)\s*s\b/g, 'Eclesiastés');
+      s = s.replace(/\b([Gg]e)\s*nesis\b/g, 'Génesis');
+      s = s.replace(/\b([Jj]ehov)\s*a\b/g, 'Jehová');
+      s = s.replace(/\bJEHOV\s*A\b/g, 'JEHOVÁ');
+      s = s.replace(/\b([Jj]es)\s*us\b/g, 'Jesús');
+      s = s.replace(/\b([Ss])\s*abado\b/g, 'sábado');
+      s = s.replace(/\bS\s*[AÁ]\s*BADO\b/gi, 'SÁBADO');
+      s = s.replace(/\b([Cc])\s*omo\b/g, 'Cómo');
+      s = s.replace(/\b¿([Qq]u)\s*e\b/g, '¿$1é');
+      s = s.replace(/\b¿([Cc]u)\s*al\b/g, '¿$1ál');
+      s = s.replace(/\b¿([Cc])\s*omo\b/g, '¿$1ómo');
+      s = s.replace(/\b([Pp]or\s+qu)\s*e\?/g, '$1é?');
+      s = s.replace(/\b([Mm])\s*as\b(?=\s+(?:felicidad|les|importante|alegr))/g, '$1ás');
+      s = s.replace(/¡\s*([Aa]l)\s*egrense/g, '¡$1égrense');
+      s = s.replace(/“\s*([Aa]l)\s*egrense/g, '“$1égrense');
+      s = s.replace(/\b([Aa]ut)\s*entica\b/g, '$1éntica');
+      s = s.replace(/\b([Dd]ise)\s*no\b/g, '$1ño');
+      s = s.replace(/\b([Ii]ncre)\s*ible\b/g, '$1íble');
+
+      s = s.replace(/([uU])\s*[\u00A8\u0308]/g, (_, u) => umlautMap[u] || u);
+      s = s.replace(/(?:[\u00B4\u02CA\u0301']\s*){2,}/g, '"');
+      s = s.replace(/(?:`\s*){2,}/g, '"');
+      s = s.replace(/\s+[\u00B4\u02CA\u0301\u02DC~]\s+/g, ' ');
+      s = s.replace(/[\u00B4\u02CA\u0301\u02DC~]+$/g, '');
+      s = s.replace(/^[•·∙⋅]+\s*[•·∙⋅]+\s*/, '• ');
+
+      return s.replace(/\s+/g, ' ').trim();
+    };
+
     const extractPageLinesAndColors = async (pdf) => {
       const allLines = [];
       const detectedDayColors = {};
@@ -720,6 +787,12 @@
           const [vx, vy] = viewport.convertToViewportPoint(item.transform[4], item.transform[5]);
           const fontHeight = Math.hypot(item.transform[2], item.transform[3]) * 1.5 || Math.abs(item.height * 1.5) || 14;
           const width = (item.width || 0) * 1.5;
+
+          const trimmedStr = item.str.trim();
+          if (trimmedStr.length === 1 && /^[A-ZÁÉÍÓÚÑ´~]$/.test(trimmedStr) && fontHeight > 26) {
+            continue;
+          }
+
           rawItems.push({
             str: item.str,
             x: vx,
@@ -729,64 +802,100 @@
           });
         }
 
-        rawItems.sort((a, b) => {
-          if (Math.abs(a.y - b.y) > 5) return a.y - b.y;
-          return a.x - b.x;
-        });
+        const midX = viewport.width * 0.51;
+        const leftTimeItems = rawItems.filter(it => it.x < midX - 15 && /^\d{1,2}[:.]\d{2}\b/.test(it.str.trim()));
+        const rightTimeItems = rawItems.filter(it => it.x >= midX - 15 && /^\d{1,2}[:.]\d{2}\b/.test(it.str.trim()));
+        const isTwoColumnPage = leftTimeItems.length >= 2 && rightTimeItems.length >= 2;
 
-        const rows = [];
-        for (const it of rawItems) {
-          const existingRow = rows.find(r => Math.abs(r.y - it.y) <= Math.max(5.5, it.h * 0.42));
-          if (existingRow) {
-            existingRow.items.push(it);
-            existingRow.y = (existingRow.y * (existingRow.items.length - 1) + it.y) / existingRow.items.length;
-          } else {
-            rows.push({ y: it.y, items: [it] });
-          }
-        }
+        const processColumnItems = (colItems) => {
+          const mergedItems = [];
+          const accentRe = /^[\u00B4\u02CA\u0301\u02DC\u0303~`¨]+$/;
 
-        rows.sort((a, b) => a.y - b.y);
-
-        for (const r of rows) {
-          r.items.sort((a, b) => a.x - b.x);
-          let lineText = '';
-          let prevEnd = null;
-          let minX = Infinity, maxX = -Infinity, minY = Infinity, maxH = 14;
-
-          for (const seg of r.items) {
-            const s = seg.str;
-            if (!s) continue;
-            minX = Math.min(minX, seg.x);
-            maxX = Math.max(maxX, seg.x + (seg.w || s.length * 6));
-            minY = Math.min(minY, seg.y - seg.h);
-            maxH = Math.max(maxH, seg.h);
-
-            if (prevEnd !== null) {
-              const gap = seg.x - prevEnd;
-              const needsSpace = gap > 2.2 && !lineText.endsWith(' ') && !s.startsWith(' ') && !/^[.,;:!?)]/.test(s);
-              if (needsSpace) lineText += ' ';
+          for (const it of colItems) {
+            const t = it.str.trim();
+            if (accentRe.test(t) && mergedItems.length > 0) {
+              const prev = mergedItems[mergedItems.length - 1];
+              if (Math.abs(prev.y - it.y) <= Math.max(10, prev.h * 0.85) && Math.abs((prev.x + prev.w) - it.x) < 22) {
+                prev.str = prev.str + t;
+                continue;
+              }
             }
-            lineText += s;
-            prevEnd = seg.x + (seg.w || s.length * 5.5);
+            mergedItems.push({ ...it });
           }
 
-          const cleaned = lineText.replace(/\s+/g, ' ').trim();
-          if (!cleaned) continue;
+          mergedItems.sort((a, b) => {
+            if (Math.abs(a.y - b.y) > 4.5) return a.y - b.y;
+            return a.x - b.x;
+          });
 
-          if (ctx) {
-            const sampled = sampleDominantAccentColorFromRect(ctx, minX, minY, maxX - minX, maxH * 1.25, ctx.canvas.width, ctx.canvas.height) || pageFallbackColor;
-            if (/^viernes$/i.test(cleaned) && sampled) detectedDayColors.viernes = sampled;
-            if (/^s[áa]bado$/i.test(cleaned) && sampled) detectedDayColors.sabado = sampled;
-            if (/^domingo$/i.test(cleaned) && sampled) detectedDayColors.domingo = sampled;
-            if (/^(programa|ma[ñn]ana)$/i.test(cleaned) && sampled && !detectedDayColors.programa) {
-              detectedDayColors.programa = sampled;
-            }
-            if (/^preguntas\s+de\s+repaso/i.test(cleaned) && sampled && !detectedDayColors.repaso) {
-              detectedDayColors.repaso = sampled;
+          const rows = [];
+          for (const it of mergedItems) {
+            const existingRow = rows.find(r => Math.abs(r.y - it.y) <= Math.max(5.2, it.h * 0.42));
+            if (existingRow) {
+              existingRow.items.push(it);
+              existingRow.y = (existingRow.y * (existingRow.items.length - 1) + it.y) / existingRow.items.length;
+            } else {
+              rows.push({ y: it.y, items: [it] });
             }
           }
 
-          allLines.push({ text: cleaned, page: pageNum });
+          rows.sort((a, b) => a.y - b.y);
+
+          for (const r of rows) {
+            r.items.sort((a, b) => a.x - b.x);
+            let lineText = '';
+            let prevEnd = null;
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxH = 14;
+
+            for (const seg of r.items) {
+              const s = seg.str;
+              if (!s) continue;
+              minX = Math.min(minX, seg.x);
+              maxX = Math.max(maxX, seg.x + (seg.w || s.length * 6));
+              minY = Math.min(minY, seg.y - seg.h);
+              maxH = Math.max(maxH, seg.h);
+
+              if (prevEnd !== null) {
+                const gap = seg.x - prevEnd;
+                const isCombiningAccent = /^[\u00B4\u02CA\u0301\u02DC\u0303~]/.test(s.trim());
+                const prevEndsWithAccent = /[\u00B4\u02CA\u0301\u02DC\u0303~]$/.test(lineText.trim());
+                const needsSpace = !isCombiningAccent && !prevEndsWithAccent && gap > 2.4 && !lineText.endsWith(' ') && !s.startsWith(' ') && !/^[.,;:!?)]/.test(s);
+                if (needsSpace) lineText += ' ';
+              }
+              lineText += s;
+              prevEnd = seg.x + (seg.w || s.length * 5.2);
+            }
+
+            const cleaned = normalizeSpanishPdfText(lineText);
+            if (!cleaned) continue;
+
+            if (ctx) {
+              const sampled = sampleDominantAccentColorFromRect(ctx, minX, minY, maxX - minX, maxH * 1.35, ctx.canvas.width, ctx.canvas.height) || pageFallbackColor;
+              if (/\bviernes\b/i.test(cleaned) && sampled && !detectedDayColors.viernes) detectedDayColors.viernes = sampled;
+              if (/\bs[áa]bado\b/i.test(cleaned) && sampled && !detectedDayColors.sabado) detectedDayColors.sabado = sampled;
+              if (/\bdomingo\b/i.test(cleaned) && sampled && !detectedDayColors.domingo) detectedDayColors.domingo = sampled;
+              if (/^(programa|ma[ñn]ana)$/i.test(cleaned) && sampled && !detectedDayColors.programa) {
+                detectedDayColors.programa = sampled;
+              }
+              if (/^preguntas\s+de\s+repaso/i.test(cleaned) && sampled && !detectedDayColors.repaso) {
+                detectedDayColors.repaso = sampled;
+              }
+            }
+
+            allLines.push({ text: cleaned, page: pageNum });
+          }
+        };
+
+        if (isTwoColumnPage) {
+          const topHeaderItems = rawItems.filter(it => it.y < viewport.height * 0.16);
+          const bodyItems = rawItems.filter(it => it.y >= viewport.height * 0.16);
+          const leftCol = bodyItems.filter(it => it.x < midX - 10);
+          const rightCol = bodyItems.filter(it => it.x >= midX - 10);
+          processColumnItems(topHeaderItems);
+          processColumnItems(leftCol);
+          processColumnItems(rightCol);
+        } else {
+          processColumnItems(rawItems);
         }
       }
 
@@ -794,44 +903,100 @@
     };
 
     const parseProgramFromExtractedData = (lineObjects, fileName, detectedDayColors = {}) => {
-      const noiseRegex = /^(?:CO-pgm\d*|CA-br\d*|CA-co\d*|S-\d+|Printed in.*|\d{1,2})$/i;
-      const lines = lineObjects
-        .map(l => l.text.replace(/[\u200B-\u200D\uFEFF]/g, '').trim())
-        .filter(l => l.length > 0 && !noiseRegex.test(l));
+      const noiseRegex = /^(?:CO-pgm\d*.*|CA-br\d*.*|CA-co\d*.*|S-\d+.*|Printed in.*|\d{1,2}|N|A|M|T|RDE)$/i;
+
+      const rawExpandedLines = [];
+      for (const obj of lineObjects) {
+        let t = normalizeSpanishPdfText(obj.text);
+        if (!t || noiseRegex.test(t)) continue;
+
+        if (/^(?:INFORMACI[ÓO]N\s+PARA\s+LOS\s+ASISTENTES|ACOMODADORES\.|BAUTISMO\.\s+Se\s+reservar|DONACIONES\.\s+Se\s+han|©\s*\d{4}\s+Watch\s+Tower)/i.test(t)) {
+          break;
+        }
+
+        t = t.replace(/\b(?:RDE|M\s*A\s*Ñ\s*A\s*N\s*A|T\s*A\s*R\s*D\s*E)\s*(?=\d{1,2}[:.]\d{2})/gi, 'TARDE\n');
+        t = t.replace(/(?:^|\s)[AÁMTN]\s+(?=\d{1,2}[:.]\d{2}\b)/g, '\n');
+        t = t.replace(/^:(\d{2})\s*(.*)$/, '10:$1 $2');
+        t = t.replace(/^(VIERNES|S[ÁA]BADO|DOMINGO)\s+(.+)$/i, '$1\n$2');
+        t = t.replace(/(\S)\s+(\d{1,2}:\d{2}\s+(?:Video\s+musical|M[úu]sica|Canci[óo]n\s+\d+|SERIE\s+DE\s+DISCURSOS|DISCURSO|PRODUCCI[ÓO]N|¿|“|"))/gi, '$1\n$2');
+        t = t.replace(/([?!)”"»])\s*[•·∙⋅]\s+(?=[A-ZÁÉÍÓÚÑ“"¿¡a-z])/g, '$1\n• ');
+
+        const parts = t.split('\n').map(s => normalizeSpanishPdfText(s)).filter(Boolean);
+        for (const p of parts) {
+          if (!noiseRegex.test(p)) {
+            rawExpandedLines.push(p);
+          }
+        }
+      }
+
+      const lines = [];
+      for (let i = 0; i < rawExpandedLines.length; i++) {
+        const cur = rawExpandedLines[i];
+        if (/^\d{1,2}[:.]\d{2}$/.test(cur)) {
+          const pendingTimes = [cur.replace('.', ':')];
+          let j = i + 1;
+          while (j < rawExpandedLines.length && /^\d{1,2}[:.]\d{2}$/.test(rawExpandedLines[j])) {
+            pendingTimes.push(rawExpandedLines[j].replace('.', ':'));
+            j++;
+          }
+          i = j - 1;
+
+          for (let k = 0; k < pendingTimes.length; k++) {
+            const timeVal = pendingTimes[k];
+            if (i + 1 < rawExpandedLines.length) {
+              i++;
+              lines.push(`${timeVal} ${rawExpandedLines[i]}`);
+              while (
+                k < pendingTimes.length - 1 &&
+                i + 1 < rawExpandedLines.length &&
+                !/^\d{1,2}[:.]\d{2}\b/.test(rawExpandedLines[i + 1]) &&
+                !/^(?:MA[ÑN]ANA|TARDE|VIERNES|S[ÁA]BADO|DOMINGO)$/i.test(rawExpandedLines[i + 1])
+              ) {
+                const peek = rawExpandedLines[i + 1];
+                const lastAdded = lines[lines.length - 1];
+                const lastIsComplete =
+                  /\)\s*$/.test(lastAdded) ||
+                  /canci[óo]n\s+\d+/i.test(lastAdded) ||
+                  /video\s+musical/i.test(lastAdded) ||
+                  /resumen\s+de\s+la\s+atalaya/i.test(lastAdded);
+                if (lastIsComplete && !/^[•·∙⋅]/.test(peek) && !/^\(/.test(peek)) {
+                  break;
+                }
+                i++;
+                lines.push(rawExpandedLines[i]);
+              }
+            }
+          }
+        } else {
+          lines.push(cur);
+        }
+      }
 
       const hasViernes = lines.some(l => /^viernes$/i.test(l));
       const hasSabado = lines.some(l => /^s[áa]bado$/i.test(l));
       const hasDomingo = lines.some(l => /^domingo$/i.test(l));
-      const isRegional = hasViernes && (hasSabado || hasDomingo);
+      const isRegional = hasViernes || (hasSabado && hasDomingo);
 
-      let yearMatch = lines.slice(0, 35).join(' ').match(/\b(202[4-9]|203[0-5])\b/);
+      let yearMatch = lines.slice(0, 30).join(' ').match(/\b(20[123]\d)\b/);
       const year = yearMatch ? yearMatch[1] : new Date().getFullYear().toString();
 
       let detectedTitle = '';
-      const skipHeaderWords = /^(programa|asamblea|regional|de circuito|con el|con un|superintendente|representante|sucursal|testigos de jehov[áa]|viernes|s[áa]bado|domingo|ma[ñn]ana|tarde|preguntas de repaso|\d{4})/i;
+      const firstSectionIdx = lines.findIndex(l => /^(viernes|s[áa]bado|domingo|ma[ñn]ana|programa)$/i.test(l));
+      const coverLines = firstSectionIdx > 0 ? lines.slice(0, firstSectionIdx) : lines.slice(0, 8);
+      const cleanCoverLines = coverLines.filter(l =>
+        !/^(?:programa|asamblea\s+del|asamblea\s+regional|asamblea\s+de\s+circuito|de\s+los\s+testigos|testigos\s+de\s+jehov|preparada\s+por|con\s+el\s+superintendente|con\s+un\s+representante)/i.test(l) &&
+        !/^\d{4}$/.test(l) &&
+        l.length >= 2 &&
+        l.length <= 65
+      );
 
-      const firstDayIdx = lines.findIndex(l => /^(viernes|ma[ñn]ana)$/i.test(l));
-      const coverLines = lines.slice(0, firstDayIdx > 0 ? Math.min(firstDayIdx, 20) : 15);
-
-      const quotedCover = coverLines.find(l => /^[“"«].+[”"»]$/.test(l) && !/\([^)]+\d+:\d+/.test(l));
-      if (quotedCover) {
-        detectedTitle = quotedCover;
-      } else {
-        const titleCandidate = coverLines.filter(l =>
-          l.length >= 4 &&
-          l.length <= 75 &&
-          !skipHeaderWords.test(l) &&
-          !/^\d{1,2}\s*[:.]\s*\d{2}/.test(l) &&
-          !/\([^)]+\d+:\d+/.test(l)
-        );
-        if (titleCandidate.length > 0) {
-          detectedTitle = titleCandidate.slice(0, 2).join(' ');
-        }
+      if (cleanCoverLines.length > 0) {
+        detectedTitle = cleanCoverLines.join(' ').replace(/\s+/g, ' ').trim();
       }
-
       if (!detectedTitle) {
         detectedTitle = fileName.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ').trim() || 'Programa de Asamblea';
       }
+      detectedTitle = normalizeSpanishPdfText(detectedTitle);
       if (!/^[“"«]/.test(detectedTitle)) {
         detectedTitle = `"${detectedTitle.replace(/^["“]+|["”]+$/g, '')}"`;
       }
@@ -853,7 +1018,7 @@
         for (const p of KNOWN_PREFIXES) {
           if (upper.startsWith(p)) {
             return {
-              prefix: text.slice(0, p.length).toUpperCase(),
+              prefix: normalizeSpanishPdfText(text.slice(0, p.length).toUpperCase()),
               rest: text.slice(p.length).trim()
             };
           }
@@ -861,7 +1026,7 @@
         const genericMatch = text.match(/^([A-ZÁÉÍÓÚÑ\s]{6,42}:)\s*(.*)$/);
         if (genericMatch) {
           return {
-            prefix: genericMatch[1].trim(),
+            prefix: normalizeSpanishPdfText(genericMatch[1].trim()),
             rest: genericMatch[2].trim()
           };
         }
@@ -908,13 +1073,18 @@
 
         for (let i = 0; i < secLines.length; i++) {
           const rawLine = secLines[i];
-          const line = rawLine.replace(/^[\u2022\u25CF\u25AA\u25E6\u2023\u2043\uf0b7\-\*]\s*/, '• ').trim();
+          const line = normalizeSpanishPdfText(
+            rawLine.replace(/^[\u2022\u25CF\u25AA\u25E6\u2023\u2043\uf0b7·∙⋅\-\*]+\s*/, '• ').trim()
+          );
+          if (!line) continue;
 
           if (/^ma[ñn]ana$/i.test(line)) {
             collectingScripture = false;
             flushCurrent();
             currentSymposium = null;
-            items.push({ id: `${progId}_${secKey}_hdr_am`, title: 'Mañana', type: 'session_header' });
+            if (!items.some(it => it.type === 'session_header' && it.title === 'Mañana')) {
+              items.push({ id: `${progId}_${secKey}_hdr_am`, title: 'Mañana', type: 'session_header' });
+            }
             continue;
           }
 
@@ -926,7 +1096,9 @@
               items.push({ id: `${progId}_${secKey}_att_am`, title: 'Asistencia (Mañana)', type: 'attendance', hasStream });
               morningClosed = true;
             }
-            items.push({ id: `${progId}_${secKey}_hdr_pm`, title: 'Tarde', type: 'session_header' });
+            if (!items.some(it => it.type === 'session_header' && it.title === 'Tarde')) {
+              items.push({ id: `${progId}_${secKey}_hdr_pm`, title: 'Tarde', type: 'session_header' });
+            }
             continue;
           }
 
@@ -939,6 +1111,13 @@
 
             if (!items.some(it => it.type === 'session_header')) {
               items.push({ id: `${progId}_${secKey}_hdr_am`, title: 'Mañana', type: 'session_header' });
+            }
+
+            const hourNum = parseInt(normalizedTime.split(':')[0], 10);
+            if (hourNum >= 1 && hourNum <= 5 && !morningClosed && items.length > 2) {
+              items.push({ id: `${progId}_${secKey}_att_am`, title: 'Asistencia (Mañana)', type: 'attendance', hasStream });
+              morningClosed = true;
+              items.push({ id: `${progId}_${secKey}_hdr_pm`, title: 'Tarde', type: 'session_header' });
             }
 
             const itemType = classifyTalkOrSong(restText);
@@ -970,14 +1149,18 @@
           }
 
           if (collectingScripture) {
-            if (line.length > 2 && !/^(viernes|s[áa]bado|domingo|programa)$/i.test(line)) {
+            if (
+              line.length > 2 &&
+              !/^(viernes|s[áa]bado|domingo|programa|asamblea|testigos\s+de\s+jehov)/i.test(line) &&
+              scriptureLines.length < 3
+            ) {
               scriptureLines.push(line);
             }
             continue;
           }
 
           if (line.startsWith('• ')) {
-            const bulletTitle = '• ' + line.slice(2).trim();
+            const bulletTitle = '• ' + line.slice(2).replace(/^[•·∙⋅\s]+/, '').trim();
             if (currentSymposium) {
               if (currentItem && currentItem === currentSymposium) {
                 items.push(currentSymposium);
@@ -1000,33 +1183,38 @@
             continue;
           }
 
-          if (currentSymposium && currentSymposium.parts.length > 0 && !currentItem) {
-            const lastPart = currentSymposium.parts[currentSymposium.parts.length - 1];
-            const endsWithClosedCitation = /\)\s*$/.test(lastPart.title);
-            if (!endsWithClosedCitation) {
-              lastPart.title = `${lastPart.title} ${line}`.replace(/\s+/g, ' ').trim();
-            } else {
-              currentSymposium.parts.push({
-                id: `${currentSymposium.id}_p${currentSymposium.parts.length + 1}`,
-                title: `• ${line}`
-              });
+          if (currentSymposium) {
+            if (currentItem && currentItem === currentSymposium) {
+              if (!currentSymposium.title) {
+                currentSymposium.title = line;
+                continue;
+              }
+              if (/[.!?:”"»]$/.test(currentSymposium.title) || /\bJes[úu]s$/i.test(currentSymposium.title) || /\bfelices$/i.test(currentSymposium.title)) {
+                items.push(currentSymposium);
+                currentItem = null;
+                currentSymposium.parts.push({
+                  id: `${currentSymposium.id}_p1`,
+                  title: `• ${line.replace(/^[•·∙⋅\s]+/, '')}`
+                });
+                continue;
+              }
+            } else if (currentSymposium.parts.length > 0 && !currentItem) {
+              const lastPart = currentSymposium.parts[currentSymposium.parts.length - 1];
+              const endsWithClosedCitation = /\)\s*$/.test(lastPart.title);
+              if (!endsWithClosedCitation) {
+                lastPart.title = normalizeSpanishPdfText(`${lastPart.title} ${line}`);
+              } else {
+                currentSymposium.parts.push({
+                  id: `${currentSymposium.id}_p${currentSymposium.parts.length + 1}`,
+                  title: `• ${line.replace(/^[•·∙⋅\s]+/, '')}`
+                });
+              }
+              continue;
             }
-            continue;
           }
 
           if (currentItem) {
-            if (currentItem.type === 'symposium' && /[!?.”"»]$/.test(currentItem.title) && (/[“"«(]/.test(line) || /^[A-ZÁÉÍÓÚÑ]/.test(line))) {
-              items.push(currentItem);
-              currentSymposium = currentItem;
-              currentItem = null;
-              currentSymposium.parts.push({
-                id: `${currentSymposium.id}_p1`,
-                title: `• ${line}`
-              });
-              continue;
-            }
-
-            currentItem.title = `${currentItem.title} ${line}`.replace(/\s+/g, ' ').trim();
+            currentItem.title = normalizeSpanishPdfText(`${currentItem.title} ${line}`);
             if (!currentItem.prefix) {
               const { prefix, rest } = extractPrefix(currentItem.title);
               if (prefix) {
@@ -1052,13 +1240,17 @@
         if (!morningClosed && items.length > 0) {
           items.push({ id: `${progId}_${secKey}_att_am`, title: 'Asistencia (Mañana)', type: 'attendance', hasStream });
         }
-        if (items.some(it => it.title === 'Tarde' && it.type === 'session_header')) {
+        const hasAfternoon = items.some(it => (it.title === 'Tarde' && it.type === 'session_header') || (it.time && /^[1-5]:/.test(it.time)));
+        if (hasAfternoon && !items.some(it => it.id === `${progId}_${secKey}_att_pm`)) {
           items.push({ id: `${progId}_${secKey}_att_pm`, title: 'Asistencia (Tarde)', type: 'attendance', hasStream });
         }
 
+        let formattedScripture = normalizeSpanishPdfText(scriptureLines.join(' '));
+        formattedScripture = formattedScripture.replace(/\s+((?:[123]\s+)?[A-ZÁÉÍÓÚÑa-záéíóúñ]+\s+\d+:\d+(?:-\d+)?)$/, ' ($1)');
+
         return {
           items,
-          scripture: scriptureLines.join(' ').replace(/\s+/g, ' ').trim()
+          scripture: formattedScripture
         };
       };
 
@@ -1110,6 +1302,7 @@
         const progLines = [];
         const repasoLines = [];
         let inRepaso = false;
+        let startedProgram = false;
 
         for (const l of lines) {
           if (/preguntas\s+de\s+repaso/i.test(l)) {
@@ -1119,7 +1312,12 @@
           if (inRepaso) {
             repasoLines.push(l);
           } else {
-            progLines.push(l);
+            if (/^(ma[ñn]ana|\d{1,2}[:.]\d{2}\b)/i.test(l)) {
+              startedProgram = true;
+            }
+            if (startedProgram || progLines.length < 4) {
+              progLines.push(l);
+            }
           }
         }
 
@@ -1132,11 +1330,11 @@
             if (currentRep) repasoItems.push(currentRep);
             currentRep = {
               id: `${progId}_rep_${repasoItems.length + 1}`,
-              title: l,
+              title: normalizeSpanishPdfText(l),
               type: 'talk'
             };
           } else if (currentRep) {
-            currentRep.title = `${currentRep.title} ${l}`.replace(/\s+/g, ' ').trim();
+            currentRep.title = normalizeSpanishPdfText(`${currentRep.title} ${l}`);
           }
         });
         if (currentRep) repasoItems.push(currentRep);
@@ -2129,7 +2327,6 @@
             </div>
           )}
 
-          {/* Barra de Navegación Superior Nativa de iOS */}
           <header className="sticky top-0 z-40 bg-[#F2F2F7]/80 dark:bg-[#000000]/80 backdrop-blur-md border-b border-[#C6C6C8]/60 dark:border-[#38383A]">
             <div className="flex items-center justify-between px-2 h-12 max-w-2xl mx-auto">
               <div className="w-28 flex items-center justify-start">
@@ -2175,10 +2372,7 @@
             </div>
           </header>
 
-          {}
           <main className="max-w-2xl mx-auto px-4 mt-6">
-            
-            {/* VISTA DE INICIO: MIS APUNTES Y CARPETAS */}
             {currentScreen === 'notes_home' && (
               <div className="animate-fade-in">
                 <div className="flex justify-between items-center mb-4 px-2">
@@ -2205,7 +2399,6 @@
                   </div>
                 </div>
 
-                {/* Barra de Carpetas estilo iOS */}
                 <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-3 px-1 no-scrollbar">
                   <button
                     type="button"
@@ -2329,7 +2522,6 @@
               </div>
             )}
 
-            {/* APARTADO ASAMBLEAS */}
             {currentScreen === 'assemblies' && (
               <div className="animate-fade-in">
                 <div className="flex justify-between items-center mb-4 px-2">
@@ -2379,7 +2571,6 @@
               </div>
             )}
 
-            {/* VISTA DEL APARTADO ARCHIVO */}
             {currentScreen === 'archive' && (
               <div className="animate-fade-in">
                 <div className="mb-4 px-2">
@@ -2461,7 +2652,6 @@
               </div>
             )}
 
-            {/* VISTA DE PROGRAMA DETALLADO CON ESTÉTICA OFICIAL */}
             {currentScreen === 'program_view' && activeProgram && activeProgramObj && (
               <div className="animate-fade-in">
                 <p className="text-[#8E8E93] text-[13px] px-1 mb-2 uppercase tracking-wider font-semibold">
@@ -2487,7 +2677,6 @@
                   </div>
                 )}
 
-                {/* Encabezado Temático del Día */}
                 <div className="px-1 mb-4">
                   <h1
                     style={{ color: currentTheme.color }}
@@ -2502,7 +2691,6 @@
                   )}
                 </div>
 
-                {/* Lista de elementos del programa */}
                 <div className="divide-y divide-[#C6C6C8]/35 dark:divide-[#2C2C2E]">
                   {activeProgramObj[activeTab]?.map((item) => {
                     if (item.type === 'session_header') {
@@ -2661,7 +2849,6 @@
               </div>
             )}
 
-            {/* VISTA DE NOTA LIBRE (MIS APUNTES) */}
             {currentScreen === 'custom_note' && activeProgram && (
               <div className="animate-fade-in">
                 <input 
@@ -2698,7 +2885,6 @@
             )}
           </main>
 
-          {/* ÚNICO MENÚ LATERAL UNIFICADO */}
           {isDrawerOpen && (
             <div className="fixed inset-0 z-50 flex items-stretch justify-start">
               <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setIsDrawerOpen(false)}></div>
