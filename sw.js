@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mis-apuntes-pwa-v15';
+const CACHE_NAME = 'mis-apuntes-pwa-v16';
 const ASSETS = [
   './',
   './index.html',
@@ -7,13 +7,14 @@ const ASSETS = [
   './icon-512.png'
 ];
 
-// Al instalar una nueva versión, queda en espera hasta que el usuario toque "Aceptar" en el cartel
+// Al instalar una nueva versión, queda en espera (waiting) hasta que el usuario toque "Aceptar" en el cartel
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
       for (const asset of ASSETS) {
         try {
-          await cache.add(asset);
+          // cache: 'reload' evita bajar archivos guardados en la memoria vieja del navegador
+          await cache.add(new Request(asset, { cache: 'reload' }));
         } catch (err) {
           console.warn('Recurso omitido en caché inicial:', asset);
         }
@@ -22,7 +23,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Escuchar cuando el usuario presiona "Aceptar" en el cartel de nueva versión
+// Cuando el usuario presiona "Aceptar" en el cartel de nueva versión, activa el nuevo Service Worker
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
