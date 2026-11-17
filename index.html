@@ -504,7 +504,7 @@
     </div>
   </div>
 
-  <!-- Modal Preferencias (Tamaño de texto de los apuntes) -->
+  <!-- Modal Preferencias (Tamaño de texto de los apuntes + Buscar actualizaciones) -->
   <div id="preferencesModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
     <div class="bg-white dark:bg-[#303134] w-full max-w-sm rounded-2xl shadow-2xl p-5 space-y-4 border border-gray-200 dark:border-gray-700">
       <div class="flex items-center justify-between">
@@ -544,6 +544,14 @@
           <p id="fontPreviewText" class="font-sans leading-relaxed" style="font-size: calc(0.95rem * var(--note-font-scale));">
             Así se verá el tamaño de letra dentro de tus apuntes y asambleas.
           </p>
+        </div>
+
+        <!-- Botón manual para verificar actualizaciones de la app -->
+        <div class="pt-1">
+          <button id="checkForUpdatesManualBtn" type="button" class="w-full py-2 px-3 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-medium flex items-center justify-center gap-2 hover:bg-black/5 dark:hover:bg-white/5 transition">
+            <span class="material-symbols-outlined text-base text-[#38bdf8]">sync</span>
+            <span id="checkUpdatesBtnText">Buscar nueva versión ahora</span>
+          </button>
         </div>
       </div>
 
@@ -2240,8 +2248,9 @@
       deferredInstallPrompt = null;
     });
 
-    // Detector de Nueva Versión del Service Worker (Muestra cartel y aplica cambios al tocar Aceptar)
+    // Detector de Nueva Versión del Service Worker (con updateViaCache: 'none' para no usar caché vieja)
     let waitingServiceWorker = null;
+    let swRegistration = null;
     let isRefreshingForSw = false;
     const swUpdateModal = document.getElementById('swUpdateModal');
     const acceptSwUpdateBtn = document.getElementById('acceptSwUpdateBtn');
@@ -2270,13 +2279,17 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').then((reg) => {
-          // Si ya hay un Service Worker esperando activación al abrir la app
+        // updateViaCache: 'none' obliga al navegador a consultar siempre el archivo sw.js real en GitHub
+        navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => {
+          swRegistration = reg;
+
+          // Verificar en el mismo momento en que abre la app
+          reg.update().catch(() => {});
+
           if (reg.waiting) {
             showUpdateNotification(reg.waiting);
           }
 
-          // Detectar cuando se descarga una nueva versión del sw.js
           reg.addEventListener('updatefound', () => {
             const newWorker = reg.installing;
             if (!newWorker) return;
@@ -2287,7 +2300,6 @@
             });
           });
 
-          // Buscar actualizaciones periódicamente o al volver a la app
           document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
               reg.update().catch(() => {});
@@ -2296,13 +2308,35 @@
         }).catch(() => {});
       });
 
-      // Cuando el nuevo Service Worker toma el control tras apretar "Aceptar", recarga la app aplicando los cambios
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (isRefreshingForSw) return;
         isRefreshingForSw = true;
         window.location.reload();
       });
     }
+
+    // Botón manual en Preferencias para buscar nueva versión al instante
+    document.getElementById('checkForUpdatesManualBtn').addEventListener('click', async () => {
+      const btnText = document.getElementById('checkUpdatesBtnText');
+      btnText.textContent = 'Buscando actualización...';
+      if (swRegistration) {
+        try {
+          await swRegistration.update();
+          if (swRegistration.waiting) {
+            closePreferencesModal();
+            showUpdateNotification(swRegistration.waiting);
+            btnText.textContent = 'Buscar nueva versión ahora';
+            return;
+          }
+        } catch (e) {}
+      }
+      setTimeout(() => {
+        if (!swRegistration?.waiting) {
+          btnText.textContent = 'Ya tienes la última versión';
+          setTimeout(() => { btnText.textContent = 'Buscar nueva versión ahora'; }, 2500);
+        }
+      }, 900);
+    });
 
     // Asegurar inicio limpio sin ninguna nota abierta
     editModal.classList.add('hidden');
